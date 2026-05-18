@@ -4,6 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>営業予定表</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="営業予定表">
+<meta name="application-name" content="営業予定表">
+<meta name="theme-color" content="#ffffff">
+<link rel="apple-touch-icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><rect width='100' height='100' rx='20' fill='%23378ADD'/><text y='.9em' font-size='75' x='50%' dominant-baseline='top' text-anchor='middle'>📅</text></svg>">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>📅</text></svg>">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
@@ -131,7 +138,8 @@
   .cal-task.s-todo{background:#F1EFE8;color:#444441}
   .cal-task.s-inprogress{background:#E6F1FB;color:#0C447C}
   .cal-task.s-done{background:#EAF3DE;color:#27500A}
-  .cal-more{font-size:10px;color:var(--text3);padding:1px 4px}
+  .cal-more{font-size:10px;color:var(--accent);padding:2px 4px;border-radius:4px;transition:background 0.15s}
+  .cal-more:hover{background:var(--surface2)}
   .cal-initial{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,0.1);font-size:9px;font-weight:600;flex-shrink:0;margin-right:3px;vertical-align:middle}
 </style>
 </head>
@@ -213,6 +221,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let sb;
 
 const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
+const INITIALS = {'小塩':'小','竹田':'竹','中嶋':'嶋','松川':'松','佐々木':'佐','中下':'下'};
 const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},done:{label:'完了',cls:'s-done'}};
 const NEXT = {todo:'inprogress',inprogress:'done',done:'todo'};
 const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
@@ -360,9 +369,9 @@ function renderCalendar() {
     const dayTasks = filtered.filter(t => t.due === dateStr);
     const cls = [isToday?'today':'', dow===0?'sunday':dow===6?'saturday':''].filter(Boolean).join(' ');
     let taskHtml = dayTasks.slice(0,3).map(t =>
-      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" ${t.member===currentMember?`onclick="openEditModal('${t.id}')"`:''} title="${escHtml(t.title)}" style="${t.member!==currentMember?'cursor:default':''}"><span class="cal-initial">${escHtml(t.member[0])}</span>${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
+      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" ${t.member===currentMember?`onclick="openEditModal('${t.id}')"`:''} title="${escHtml(t.title)}" style="${t.member!==currentMember?'cursor:default':''}"><span class="cal-initial">${INITIALS[t.member]||t.member[0]}</span>${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
     ).join('');
-    if (dayTasks.length > 3) taskHtml += `<div class="cal-more">+${dayTasks.length-3}件</div>`;
+    if (dayTasks.length > 3) taskHtml += `<div class="cal-more" onclick="openDayModal('${dateStr}')" style="cursor:pointer">+${dayTasks.length-3}件 すべて見る</div>`;
     html += `<div class="cal-cell ${cls}"><div class="cal-day">${d}</div>${taskHtml}</div>`;
   }
   const remaining = 42 - startOffset - lastDate;
@@ -424,7 +433,7 @@ function render() {
       </div>
       <div class="task-bottom">
         <div class="task-meta">
-          <div class="avatar ${av}">${escHtml(t.member[0])}</div>
+          <div class="avatar ${av}">${INITIALS[t.member]||t.member[0]}</div>
           <span>${escHtml(t.member)}</span>
           ${due ? `<span class="due${due.over?' overdue':''}"><i class="ti ti-calendar-event" style="font-size:12px"></i> ${due.text}</span>` : ''}
           ${t.time ? `<span class="due"><i class="ti ti-clock" style="font-size:12px"></i> ${escHtml(t.time)}</span>` : ''}
@@ -464,7 +473,51 @@ function openModal() {
     </div>`;
 }
 
-function handleOverlay(e) { if (e.target.id === 'overlay') closeModal(); }
+function openDayModal(dateStr) {
+  const filtered = memberFilter === 'all' ? tasks : tasks.filter(t => t.member === memberFilter);
+  const dayTasks = filtered.filter(t => t.due === dateStr);
+  const [y, m, d] = dateStr.split('-');
+  const label = `${parseInt(m)}月${parseInt(d)}日`;
+  const taskHtml = dayTasks.map(t => {
+    const s = STATUS[t.status] || STATUS.todo;
+    const av = MEMBERS[t.member] || 'av-blue';
+    const isOwn = t.member === currentMember;
+    return `<div class="task-card" style="margin-bottom:8px">
+      <div class="task-top"><div class="task-title">${escHtml(t.title)}</div></div>
+      <div class="task-bottom">
+        <div class="task-meta">
+          <div class="avatar ${av}">${INITIALS[t.member]||t.member[0]}</div>
+          <span>${escHtml(t.member)}</span>
+          ${t.time ? `<span class="due"><i class="ti ti-clock" style="font-size:12px"></i> ${escHtml(t.time)}</span>` : ''}
+        </div>
+        <div class="task-actions">
+          <span class="status-badge ${s.cls}" style="cursor:${isOwn?'pointer':'default'}" ${isOwn?`onclick="cycleStatusAndRefresh('${t.id}','${dateStr}')"`:''}>${s.label}</span>
+          ${isOwn ? `<button class="edit-btn" onclick="closeModal();openEditModal('${t.id}')"><i class="ti ti-edit"></i> 編集</button>` : ''}
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+  document.getElementById('modal-area').innerHTML = `
+    <div class="overlay" id="overlay" onclick="handleOverlay(event)">
+      <div class="modal">
+        <h2>${label}のタスク（${dayTasks.length}件）</h2>
+        <div style="max-height:60vh;overflow-y:auto;margin-bottom:8px">${taskHtml}</div>
+        <div class="modal-btns">
+          <button class="btn-cancel" onclick="closeModal()">閉じる</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function cycleStatusAndRefresh(id, dateStr) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const next = NEXT[t.status];
+  const { error } = await sb.from('tasks').update({ status: next }).eq('id', id);
+  if (!error) { t.status = next; closeModal(); openDayModal(dateStr); renderCalendar(); }
+}
+
+
 function closeModal() { document.getElementById('modal-area').innerHTML = ''; }
 
 function openEditModal(id) {
