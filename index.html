@@ -105,6 +105,35 @@
   .btn-submit{background:var(--text);color:var(--bg);border-color:var(--text)}
   .btn-submit:hover{opacity:0.85}
   .btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+
+  /* 表示切替 */
+  .view-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px}
+  .view-btn{display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px;border-radius:6px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all 0.15s}
+  .view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.08)}
+
+  /* カレンダー */
+  .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  .cal-nav{display:flex;align-items:center;gap:8px}
+  .cal-nav button{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:16px;transition:all 0.15s}
+  .cal-nav button:hover{background:var(--surface2);color:var(--text)}
+  .cal-title{font-size:15px;font-weight:600;min-width:120px;text-align:center}
+  .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
+  .cal-dow{text-align:center;font-size:11px;color:var(--text3);padding:4px 0;font-weight:500}
+  .cal-dow:first-child{color:#E24B4A}
+  .cal-dow:last-child{color:#378ADD}
+  .cal-cell{min-height:80px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px;transition:border-color 0.15s;overflow:hidden}
+  .cal-cell:hover{border-color:var(--border2)}
+  .cal-cell.other-month{background:var(--surface2);opacity:0.5}
+  .cal-cell.today .cal-day{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+  .cal-cell.sunday .cal-day{color:#E24B4A}
+  .cal-cell.saturday .cal-day{color:#378ADD}
+  .cal-day{font-size:12px;font-weight:500;margin-bottom:3px;width:22px;height:22px;display:flex;align-items:center;justify-content:center}
+  .cal-task{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
+  .cal-task.s-todo{background:#F1EFE8;color:#444441}
+  .cal-task.s-inprogress{background:#E6F1FB;color:#0C447C}
+  .cal-task.s-review{background:#FAEEDA;color:#633806}
+  .cal-task.s-done{background:#EAF3DE;color:#27500A}
+  .cal-more{font-size:10px;color:var(--text3);padding:1px 4px}
 </style>
 </head>
 <body>
@@ -116,11 +145,11 @@
     <div class="login-sub">メールアドレスとパスワードでログイン</div>
     <div class="login-field">
       <label>メールアドレス</label>
-      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+      <input type="email" id="login-email" name="email" placeholder="your@email.com" autocomplete="email">
     </div>
     <div class="login-field">
       <label>パスワード</label>
-      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+      <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password">
     </div>
     <button class="login-btn" id="login-btn" onclick="doLogin()">ログイン</button>
     <div class="login-error" id="login-error"></div>
@@ -133,6 +162,10 @@
     <div class="header">
       <h1>営業予定表</h1>
       <div class="header-right">
+        <div class="view-toggle">
+          <button class="view-btn active" id="btn-list" onclick="setView('list')"><i class="ti ti-list" aria-hidden="true"></i> リスト</button>
+          <button class="view-btn" id="btn-cal" onclick="setView('calendar')"><i class="ti ti-calendar" aria-hidden="true"></i> カレンダー</button>
+        </div>
         <div class="user-badge"><i class="ti ti-user"></i><span id="user-name"></span></div>
         <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> ログアウト</button>
         <button class="btn-new" onclick="openModal()"><i class="ti ti-plus"></i> 新規タスク</button>
@@ -156,6 +189,16 @@
       <button class="filter-btn" onclick="setMemberFilter('中下',this)">中下</button>
     </div>
     <div class="task-list" id="task-list"><div class="loading">読み込み中...</div></div>
+    <div id="cal-view" style="display:none">
+      <div class="cal-header">
+        <div class="cal-nav">
+          <button onclick="moveMonth(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+          <div class="cal-title" id="cal-title"></div>
+          <button onclick="moveMonth(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+        </div>
+      </div>
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
     <button class="add-bottom" onclick="openModal()"><i class="ti ti-plus"></i> タスクを追加</button>
   </div>
 </div>
@@ -176,6 +219,9 @@ let tasks = [];
 let filter = 'all';
 let memberFilter = 'all';
 let currentMember = '';
+let viewMode = 'list';
+let calYear = new Date().getFullYear();
+let calMonth = new Date().getMonth();
 
 const EMAIL_TO_MEMBER = {
   'oshio': '小塩', 'takeda': '竹田', 'nakajima': '中嶋',
@@ -222,13 +268,20 @@ function showApp(user) {
   currentMember = getMemberFromEmail(user.email);
   filter = 'all';
   memberFilter = currentMember;
+  viewMode = 'list';
+  calYear = new Date().getFullYear();
+  calMonth = new Date().getMonth();
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('task-list').style.display = 'flex';
+  document.getElementById('cal-view').style.display = 'none';
+  document.getElementById('status-filters').style.display = 'flex';
   document.getElementById('user-name').textContent = currentMember;
+  document.getElementById('btn-list').classList.add('active');
+  document.getElementById('btn-cal').classList.remove('active');
   document.querySelectorAll('#status-filters .filter-btn, #member-filters .filter-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('#status-filters .filter-btn:first-child').classList.add('active');
-  const memberBtns = document.querySelectorAll('#member-filters .filter-btn');
-  memberBtns.forEach(b => { if (b.textContent === currentMember) b.classList.add('active'); });
+  document.querySelectorAll('#member-filters .filter-btn').forEach(b => { if (b.textContent.trim() === currentMember) b.classList.add('active'); });
   loadTasks();
 }
 
@@ -267,7 +320,58 @@ async function addTaskToDb(title, member, status, due, time) {
 }
 
 /* ─── 表示 ─── */
-function setFilter(f, btn) {
+function setView(v) {
+  viewMode = v;
+  document.getElementById('btn-list').classList.toggle('active', v === 'list');
+  document.getElementById('btn-cal').classList.toggle('active', v === 'calendar');
+  document.getElementById('task-list').style.display = v === 'list' ? 'flex' : 'none';
+  document.getElementById('cal-view').style.display = v === 'calendar' ? 'block' : 'none';
+  document.getElementById('status-filters').style.display = v === 'list' ? 'flex' : 'none';
+  if (v === 'calendar') renderCalendar();
+  else render();
+}
+
+function moveMonth(d) {
+  calMonth += d;
+  if (calMonth > 11) { calMonth = 0; calYear++; }
+  if (calMonth < 0) { calMonth = 11; calYear--; }
+  renderCalendar();
+}
+
+function renderCalendar() {
+  const filtered = memberFilter === 'all' ? tasks : tasks.filter(t => t.member === memberFilter);
+  document.getElementById('cal-title').textContent = `${calYear}年${calMonth+1}月`;
+  const firstDay = new Date(calYear, calMonth, 1).getDay();
+  const lastDate = new Date(calYear, calMonth+1, 0).getDate();
+  const today = new Date(); today.setHours(0,0,0,0);
+  const dows = ['日','月','火','水','木','金','土'];
+  let html = dows.map(d => `<div class="cal-dow">${d}</div>`).join('');
+  const startOffset = firstDay;
+  const prevLast = new Date(calYear, calMonth, 0).getDate();
+  for (let i = 0; i < startOffset; i++) {
+    html += `<div class="cal-cell other-month"><div class="cal-day">${prevLast - startOffset + i + 1}</div></div>`;
+  }
+  for (let d = 1; d <= lastDate; d++) {
+    const dt = new Date(calYear, calMonth, d);
+    const dow = dt.getDay();
+    const isToday = dt.getTime() === today.getTime();
+    const dateStr = `${calYear}-${String(calMonth+1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+    const dayTasks = filtered.filter(t => t.due === dateStr);
+    const cls = [isToday?'today':'', dow===0?'sunday':dow===6?'saturday':''].filter(Boolean).join(' ');
+    let taskHtml = dayTasks.slice(0,3).map(t =>
+      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="openEditModal('${t.id}')" title="${escHtml(t.title)}">${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
+    ).join('');
+    if (dayTasks.length > 3) taskHtml += `<div class="cal-more">+${dayTasks.length-3}件</div>`;
+    html += `<div class="cal-cell ${cls}"><div class="cal-day">${d}</div>${taskHtml}</div>`;
+  }
+  const remaining = 42 - startOffset - lastDate;
+  for (let i = 1; i <= remaining; i++) {
+    html += `<div class="cal-cell other-month"><div class="cal-day">${i}</div></div>`;
+  }
+  document.getElementById('cal-grid').innerHTML = html;
+}
+
+
   filter = f;
   document.querySelectorAll('#status-filters .filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -278,7 +382,8 @@ function setMemberFilter(m, btn) {
   memberFilter = m;
   document.querySelectorAll('#member-filters .filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
-  render();
+  if (viewMode === 'calendar') renderCalendar();
+  else render();
 }
 
 function formatDue(d) {
