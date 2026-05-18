@@ -210,7 +210,15 @@
       <div class="cal-header">
         <div class="cal-nav">
           <button onclick="moveMonth(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i> 前月</button>
-          <div class="cal-title" id="cal-title"></div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <select id="cal-year-sel" onchange="setCalYear(this.value)" style="font-size:14px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;background:var(--surface);color:var(--text);font-family:inherit;min-height:36px"></select>
+            <select id="cal-month-sel" onchange="setCalMonth(this.value)" style="font-size:14px;font-weight:600;border:1px solid var(--border);border-radius:var(--radius-sm);padding:4px 8px;background:var(--surface);color:var(--text);font-family:inherit;min-height:36px">
+              <option value="0">1月</option><option value="1">2月</option><option value="2">3月</option>
+              <option value="3">4月</option><option value="4">5月</option><option value="5">6月</option>
+              <option value="6">7月</option><option value="7">8月</option><option value="8">9月</option>
+              <option value="9">10月</option><option value="10">11月</option><option value="11">12月</option>
+            </select>
+          </div>
           <button onclick="moveMonth(1)">次月 <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         </div>
       </div>
@@ -414,6 +422,26 @@ function setView(v) {
   else render();
 }
 
+function setCalYear(y) { calYear = parseInt(y); renderCalendar(); }
+function setCalMonth(m) { calMonth = parseInt(m); renderCalendar(); }
+
+function updateCalSelects() {
+  const ySel = document.getElementById('cal-year-sel');
+  const mSel = document.getElementById('cal-month-sel');
+  if (!ySel || !mSel) return;
+  // 年セレクト（現在年-2〜現在年+3）
+  const curYear = new Date().getFullYear();
+  if (ySel.options.length === 0) {
+    for (let y = curYear - 2; y <= curYear + 3; y++) {
+      const opt = document.createElement('option');
+      opt.value = y; opt.textContent = y + '年';
+      ySel.appendChild(opt);
+    }
+  }
+  ySel.value = calYear;
+  mSel.value = calMonth;
+}
+
 function moveMonth(d) {
   calMonth += d;
   if (calMonth > 11) { calMonth = 0; calYear++; }
@@ -423,7 +451,7 @@ function moveMonth(d) {
 
 function renderCalendar() {
   const filtered = memberFilter === 'all' ? tasks : tasks.filter(t => t.member === memberFilter);
-  document.getElementById('cal-title').textContent = `${calYear}年${calMonth+1}月`;
+  updateCalSelects();
   const firstDay = new Date(calYear, calMonth, 1).getDay();
   const lastDate = new Date(calYear, calMonth+1, 0).getDate();
   const today = new Date(); today.setHours(0,0,0,0);
