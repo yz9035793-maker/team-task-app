@@ -407,7 +407,7 @@ function openModalWithDate(dateStr) {
         <div class="field"><label>ステータス</label><select id="f-status">
           <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="done">完了</option>
         </select></div>
-        <div class="field"><label>期日</label><input type="date" id="f-due" value="${dateStr}"></div>
+        <div class="field"><label>期日</label>${dateSelects(dateStr)}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions('00:00')}</select></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -515,6 +515,30 @@ function render() {
   }).join('') : '<p class="empty">タスクがありません</p>';
 }
 
+function dateSelects(val) {
+  const d = val ? new Date(val + 'T00:00:00') : new Date();
+  const cy = d.getFullYear(), cm = d.getMonth()+1, cd = d.getDate();
+  let years = '', months = '', days = '';
+  for (let y = new Date().getFullYear()-1; y <= new Date().getFullYear()+3; y++)
+    years += `<option value="${y}" ${cy===y?'selected':''}>${y}年</option>`;
+  for (let m = 1; m <= 12; m++)
+    months += `<option value="${m}" ${cm===m?'selected':''}>${m}月</option>`;
+  for (let d = 1; d <= 31; d++)
+    days += `<option value="${d}" ${cd===d?'selected':''}>${d}日</option>`;
+  return `<div style="display:flex;gap:6px">
+    <select id="f-due-y" style="flex:2;font-size:15px;padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px">${years}</select>
+    <select id="f-due-m" style="flex:1;font-size:15px;padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px">${months}</select>
+    <select id="f-due-d" style="flex:1;font-size:15px;padding:10px 8px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px">${days}</select>
+  </div>`;
+}
+
+function getDueValue() {
+  const y = document.getElementById('f-due-y').value;
+  const m = String(document.getElementById('f-due-m').value).padStart(2,'0');
+  const d = String(document.getElementById('f-due-d').value).padStart(2,'0');
+  return `${y}-${m}-${d}`;
+}
+
 /* ─── モーダル ─── */
 function openModal() {
   const today = new Date();
@@ -530,7 +554,7 @@ function openModal() {
         <div class="field"><label>ステータス</label><select id="f-status">
           <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="done">完了</option>
         </select></div>
-        <div class="field"><label>期日</label><input type="date" id="f-due" value="${due}"></div>
+        <div class="field"><label>期日</label>${dateSelects(due)}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions('00:00')}</select></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -607,7 +631,7 @@ function openEditModal(id) {
           <option value="inprogress" ${t.status==='inprogress'?'selected':''}>進行中</option>
           <option value="done" ${t.status==='done'?'selected':''}>完了</option>
         </select></div>
-        <div class="field"><label>期日</label><input type="date" id="f-due" value="${t.due||''}"></div>
+        <div class="field"><label>期日</label>${dateSelects(t.due||'')}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions(t.time||'00:00')}</select></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
@@ -642,7 +666,7 @@ async function updateTask(id) {
     title,
     member: document.getElementById('f-member').value,
     status: document.getElementById('f-status').value,
-    due: document.getElementById('f-due').value || null,
+    due: getDueValue() || null,
     time: document.getElementById('f-time').value || null
   };
   const { error } = await sb.from('tasks').update(updates).eq('id', id);
@@ -669,7 +693,7 @@ async function submitTask() {
     title,
     currentMember,
     document.getElementById('f-status').value,
-    document.getElementById('f-due').value,
+    getDueValue(),
     document.getElementById('f-time').value
   );
   if (ok) closeModal();
