@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>チームタスク管理</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #f8f8f6; --surface: #ffffff; --surface2: #f1f0ec;
+    --border: rgba(0,0,0,0.1); --border2: rgba(0,0,0,0.18);
+    --text: #1a1a18; --text2: #6b6b66; --text3: #9e9e98;
+    --radius: 12px; --radius-sm: 8px; --accent: #378ADD;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#18181a; --surface:#232326; --surface2:#2c2c30; --border:rgba(255,255,255,0.09); --border2:rgba(255,255,255,0.16); --text:#f0f0ec; --text2:#9e9e98; --text3:#666662; }
+    .s-todo{background:#2a2a26!important;color:#b0b0a8!important}
+    .s-inprogress{background:#0e2236!important;color:#7ab8f0!important}
+    .s-review{background:#2a1e08!important;color:#f0b860!important}
+    .s-done{background:#102210!important;color:#7ac870!important}
+    .av-blue{background:#0e2236!important;color:#7ab8f0!important}
+    .av-teal{background:#0a2018!important;color:#5dcaa5!important}
+    .av-coral{background:#2a1008!important;color:#f0997b!important}
+    .av-purple{background:#1a1430!important;color:#afa9ec!important}
+    .av-amber{background:#2a1a04!important;color:#fac775!important}
+    .av-green{background:#102210!important;color:#7ac870!important}
+  }
+  html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:15px}
+
+  /* ログイン画面 */
+  #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
+  .login-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:2rem;width:100%;max-width:360px}
+  .login-logo{font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:0.25rem}
+  .login-sub{font-size:13px;color:var(--text2);margin-bottom:1.75rem}
+  .login-field{margin-bottom:12px}
+  .login-field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px;font-weight:500}
+  .login-field input{width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px;outline:none;transition:border-color 0.15s}
+  .login-field input:focus{border-color:var(--accent)}
+  .login-btn{width:100%;font-size:14px;padding:11px;min-height:44px;border-radius:var(--radius-sm);border:none;background:var(--text);color:var(--bg);font-family:inherit;font-weight:600;cursor:pointer;margin-top:8px;transition:opacity 0.15s}
+  .login-btn:hover{opacity:0.85}
+  .login-btn:disabled{opacity:0.5;cursor:not-allowed}
+  .login-error{font-size:12px;color:#A32D2D;background:#FCEBEB;border-radius:var(--radius-sm);padding:8px 12px;margin-top:10px;display:none}
+
+  /* アプリ画面 */
+  #app-screen{display:none}
+  .container{max-width:680px;margin:0 auto;padding:1.5rem 1rem 4rem}
+  .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;gap:8px;flex-wrap:wrap}
+  .header h1{font-size:20px;font-weight:600;letter-spacing:-0.3px}
+  .header-right{display:flex;align-items:center;gap:8px}
+  .user-badge{font-size:12px;color:var(--text2);display:flex;align-items:center;gap:4px}
+  .btn-new{display:flex;align-items:center;gap:5px;font-size:13px;padding:8px 14px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;min-height:44px;transition:background 0.15s}
+  .btn-new:hover{background:var(--surface2)}
+  .btn-logout{display:flex;align-items:center;gap:4px;font-size:12px;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;min-height:36px;transition:all 0.15s}
+  .btn-logout:hover{background:var(--surface2);color:var(--text)}
+  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:1.25rem}
+  @media(min-width:480px){.stats{grid-template-columns:repeat(4,1fr)}}
+  .stat{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
+  .stat-label{font-size:11px;color:var(--text2);margin-bottom:3px}
+  .stat-num{font-size:22px;font-weight:600}
+  .filters{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:1rem;scrollbar-width:none}
+  .filters::-webkit-scrollbar{display:none}
+  .filter-btn{font-size:12px;padding:6px 14px;border-radius:999px;border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;white-space:nowrap;min-height:36px;flex-shrink:0;font-family:inherit;transition:all 0.15s}
+  .filter-btn.active{background:var(--surface);color:var(--text);border-color:var(--border2);font-weight:500}
+  .task-list{display:flex;flex-direction:column;gap:8px}
+  .task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:border-color 0.15s}
+  .task-card:hover{border-color:var(--border2)}
+  .task-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
+  .priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+  .p-high{background:#E24B4A}.p-med{background:#EF9F27}.p-low{background:#639922}
+  .task-title{font-size:14px;font-weight:500;flex:1;line-height:1.45}
+  .task-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
+  .task-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+  .avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
+  .av-blue{background:#E6F1FB;color:#0C447C}.av-teal{background:#E1F5EE;color:#085041}
+  .av-coral{background:#FAECE7;color:#712B13}.av-purple{background:#EEEDFE;color:#3C3489}
+  .av-amber{background:#FAEEDA;color:#633806}.av-green{background:#EAF3DE;color:#27500A}
+  .status-badge{font-size:11px;padding:5px 12px;border-radius:999px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;min-height:32px;display:flex;align-items:center;font-family:inherit;flex-shrink:0}
+  .s-todo{background:#F1EFE8;color:#444441}.s-inprogress{background:#E6F1FB;color:#0C447C}
+  .s-review{background:#FAEEDA;color:#633806}.s-done{background:#EAF3DE;color:#27500A}
+  .due{display:flex;align-items:center;gap:3px}
+  .due.overdue{color:#A32D2D}
+  .empty,.loading{font-size:14px;color:var(--text3);text-align:center;padding:3rem 0}
+  .add-bottom{display:flex;align-items:center;gap:6px;font-size:13px;padding:12px;border-radius:var(--radius-sm);border:1px dashed var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-top:8px;width:100%;justify-content:center;min-height:44px;font-family:inherit;transition:all 0.15s}
+  .add-bottom:hover{background:var(--surface);color:var(--text)}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+  @media(min-width:480px){.overlay{align-items:center}}
+  .modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:20px 16px 32px;width:100%;max-width:480px}
+  @media(min-width:480px){.modal{border-radius:var(--radius);padding:24px}}
+  .modal h2{font-size:17px;font-weight:600;margin-bottom:16px}
+  .field{margin-bottom:12px}
+  .field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
+  .field input,.field select{width:100%;font-size:15px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px;outline:none;transition:border-color 0.15s}
+  .field input:focus,.field select:focus{border-color:var(--accent)}
+  .modal-btns{display:flex;gap:8px;margin-top:16px}
+  .modal-btns button{flex:1;font-size:14px;padding:11px;min-height:44px;border-radius:var(--radius-sm);border:1px solid var(--border2);cursor:pointer;font-family:inherit;font-weight:500;transition:all 0.15s}
+  .btn-cancel{background:transparent;color:var(--text2)}
+  .btn-cancel:hover{background:var(--surface2)}
+  .btn-submit{background:var(--text);color:var(--bg);border-color:var(--text)}
+  .btn-submit:hover{opacity:0.85}
+  .btn-submit:disabled{opacity:0.5;cursor:not-allowed}
+</style>
+</head>
+<body>
+
+<!-- ログイン画面 -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">チームタスク</div>
+    <div class="login-sub">チームのメールアドレスとパスワードでログイン</div>
+    <div class="login-field">
+      <label>メールアドレス</label>
+      <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
+    </div>
+    <div class="login-field">
+      <label>パスワード</label>
+      <input type="password" id="login-password" placeholder="••••••••" autocomplete="current-password">
+    </div>
+    <button class="login-btn" id="login-btn" onclick="doLogin()">ログイン</button>
+    <div class="login-error" id="login-error"></div>
+  </div>
+</div>
+
+<!-- アプリ画面 -->
+<div id="app-screen">
+  <div class="container">
+    <div class="header">
+      <h1>チームタスク</h1>
+      <div class="header-right">
+        <div class="user-badge"><i class="ti ti-user"></i><span id="user-name"></span></div>
+        <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> ログアウト</button>
+        <button class="btn-new" onclick="openModal()"><i class="ti ti-plus"></i> 新規タスク</button>
+      </div>
+    </div>
+    <div class="stats" id="stats"></div>
+    <div class="filters">
+      <button class="filter-btn active" onclick="setFilter('all',this)">すべて</button>
+      <button class="filter-btn" onclick="setFilter('todo',this)">未着手</button>
+      <button class="filter-btn" onclick="setFilter('inprogress',this)">進行中</button>
+      <button class="filter-btn" onclick="setFilter('review',this)">レビュー中</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">完了</button>
+    </div>
+    <div class="task-list" id="task-list"><div class="loading">読み込み中...</div></div>
+    <button class="add-bottom" onclick="openModal()"><i class="ti ti-plus"></i> タスクを追加</button>
+  </div>
+</div>
+
+<div id="modal-area"></div>
+
+<script>
+const SUPABASE_URL = 'https://pbgxirbbuzvbzpqiuvxu.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZ3hpcmJidXp2YnpwcWl1dnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzY4NzQsImV4cCI6MjA5NDY1Mjg3NH0.4MK9lTpyJ6Tc10kOLSCQfeUNuDTxNfhQP0SqI8UoqI8';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
+const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},review:{label:'レビュー中',cls:'s-review'},done:{label:'完了',cls:'s-done'}};
+const NEXT = {todo:'inprogress',inprogress:'review',review:'done',done:'todo'};
+const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
+
+let tasks = [];
+let filter = 'all';
+
+/* ─── 認証 ─── */
+async function doLogin() {
+  const email = document.getElementById('login-email').value.trim();
+  const password = document.getElementById('login-password').value;
+  const btn = document.getElementById('login-btn');
+  const err = document.getElementById('login-error');
+  err.style.display = 'none';
+  btn.disabled = true; btn.textContent = 'ログイン中...';
+  const { data, error } = await sb.auth.signInWithPassword({ email, password });
+  btn.disabled = false; btn.textContent = 'ログイン';
+  if (error) {
+    err.textContent = 'メールアドレスまたはパスワードが正しくありません';
+    err.style.display = 'block';
+  } else {
+    showApp(data.user);
+  }
+}
+
+async function doLogout() {
+  await sb.auth.signOut();
+  document.getElementById('app-screen').style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('login-password').value = '';
+}
+
+function showApp(user) {
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-screen').style.display = 'block';
+  document.getElementById('user-name').textContent = user.email.split('@')[0];
+  loadTasks();
+}
+
+document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+sb.auth.getSession().then(({ data }) => {
+  if (data.session) showApp(data.session.user);
+});
+
+/* ─── タスク操作 ─── */
+async function loadTasks() {
+  const { data, error } = await sb.from('tasks').select('*').order('created_at', { ascending: false });
+  if (error) { console.error(error); return; }
+  tasks = data || [];
+  render();
+}
+
+async function cycleStatus(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const next = NEXT[t.status];
+  const { error } = await sb.from('tasks').update({ status: next }).eq('id', id);
+  if (!error) { t.status = next; render(); }
+}
+
+async function addTaskToDb(title, member, status, priority, due) {
+  const { data, error } = await sb.from('tasks').insert([{ title, member, status, priority, due: due || null }]).select().single();
+  if (!error && data) { tasks.unshift(data); render(); return true; }
+  return false;
+}
+
+/* ─── 表示 ─── */
+function setFilter(f, btn) {
+  filter = f;
+  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function formatDue(d) {
+  if (!d) return null;
+  const dt = new Date(d + 'T00:00:00');
+  const today = new Date(); today.setHours(0,0,0,0);
+  const diff = Math.round((dt - today) / 86400000);
+  if (diff < 0) return {text:`${Math.abs(diff)}日超過`,over:true};
+  if (diff === 0) return {text:'今日',over:false};
+  if (diff === 1) return {text:'明日',over:false};
+  return {text:`${dt.getMonth()+1}/${dt.getDate()}`,over:false};
+}
+
+function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function render() {
+  const visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
+  const counts = {todo:0,inprogress:0,review:0,done:0};
+  tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+  document.getElementById('stats').innerHTML = `
+    <div class="stat"><div class="stat-label">未着手</div><div class="stat-num">${counts.todo}</div></div>
+    <div class="stat"><div class="stat-label">進行中</div><div class="stat-num">${counts.inprogress}</div></div>
+    <div class="stat"><div class="stat-label">レビュー中</div><div class="stat-num">${counts.review}</div></div>
+    <div class="stat"><div class="stat-label">完了</div><div class="stat-num">${counts.done}</div></div>
+  `;
+  document.getElementById('task-list').innerHTML = visible.length ? visible.map(t => {
+    const s = STATUS[t.status] || STATUS.todo;
+    const av = MEMBERS[t.member] || 'av-blue';
+    const due = formatDue(t.due);
+    return `<div class="task-card">
+      <div class="task-top">
+        <div class="priority-dot ${PRIORITY[t.priority]||'p-med'}"></div>
+        <div class="task-title">${escHtml(t.title)}</div>
+      </div>
+      <div class="task-bottom">
+        <div class="task-meta">
+          <div class="avatar ${av}">${escHtml(t.member[0])}</div>
+          <span>${escHtml(t.member)}</span>
+          ${due ? `<span class="due${due.over?' overdue':''}"><i class="ti ti-calendar-event" style="font-size:12px"></i> ${due.text}</span>` : ''}
+        </div>
+        <button class="status-badge ${s.cls}" onclick="cycleStatus('${t.id}')">${s.label}</button>
+      </div>
+    </div>`;
+  }).join('') : '<p class="empty">タスクがありません</p>';
+}
+
+/* ─── モーダル ─── */
+function openModal() {
+  const today = new Date();
+  const due = `${today.getFullYear()}-${String(today.getMonth()+2).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  document.getElementById('modal-area').innerHTML = `
+    <div class="overlay" id="overlay" onclick="handleOverlay(event)">
+      <div class="modal">
+        <h2>新規タスク</h2>
+        <div class="field"><label>タスク名</label><input type="text" id="f-title" placeholder="タスクを入力" autofocus></div>
+        <div class="field"><label>担当者</label><select id="f-member">
+          <option>小塩</option><option>竹田</option><option>中嶋</option><option>松川</option><option>佐々木</option><option>中下</option>
+        </select></div>
+        <div class="field"><label>ステータス</label><select id="f-status">
+          <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="review">レビュー中</option><option value="done">完了</option>
+        </select></div>
+        <div class="field"><label>優先度</label><select id="f-priority">
+          <option value="high">高</option><option value="med">中</option><option value="low">低</option>
+        </select></div>
+        <div class="field"><label>期日</label><input type="date" id="f-due" value="${due}"></div>
+        <div class="modal-btns">
+          <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+          <button class="btn-submit" id="submit-btn" onclick="submitTask()">追加</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function handleOverlay(e) { if (e.target.id === 'overlay') closeModal(); }
+function closeModal() { document.getElementById('modal-area').innerHTML = ''; }
+
+async function submitTask() {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '追加中...';
+  const ok = await addTaskToDb(
+    title,
+    document.getElementById('f-member').value,
+    document.getElementById('f-status').value,
+    document.getElementById('f-priority').value,
+    document.getElementById('f-due').value
+  );
+  if (ok) closeModal();
+  else { btn.disabled = false; btn.textContent = '追加'; }
+}
+
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+</script>
+</body>
+</html>
