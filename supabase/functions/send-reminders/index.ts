@@ -1,3 +1,4 @@
+// v1
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
 const VAPID_PUBLIC = 'BIEq7AFKTGoqecCwoEF1nvmfMopaq2za_PbYsye-LROfCLDMO-mF83AcsrI1PZkRi3ah46LeYQJembcie-gejUE';
