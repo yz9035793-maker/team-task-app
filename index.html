@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>チームタスク管理</title>
+<title>営業予定表</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -70,13 +70,18 @@
   .priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
   .p-high{background:#E24B4A}.p-med{background:#EF9F27}.p-low{background:#639922}
   .task-title{font-size:14px;font-weight:500;flex:1;line-height:1.45}
-  .task-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap}
-  .task-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)}
+  .task-bottom{display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:nowrap}
+  .task-meta{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2);flex:1;min-width:0;flex-wrap:wrap}
+  .task-actions{display:flex;align-items:center;gap:6px;flex-shrink:0}
   .avatar{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600;flex-shrink:0}
   .av-blue{background:#E6F1FB;color:#0C447C}.av-teal{background:#E1F5EE;color:#085041}
   .av-coral{background:#FAECE7;color:#712B13}.av-purple{background:#EEEDFE;color:#3C3489}
   .av-amber{background:#FAEEDA;color:#633806}.av-green{background:#EAF3DE;color:#27500A}
   .status-badge{font-size:11px;padding:5px 12px;border-radius:999px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;min-height:32px;display:flex;align-items:center;font-family:inherit;flex-shrink:0}
+  .del-btn{display:flex;align-items:center;gap:4px;padding:0 10px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;flex-shrink:0;font-size:12px;font-family:inherit;transition:all 0.15s}
+  .del-btn:hover{background:#FCEBEB;color:#A32D2D;border-color:#F09595}
+  .edit-btn{display:flex;align-items:center;gap:4px;padding:0 10px;height:30px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;flex-shrink:0;font-size:12px;font-family:inherit;transition:all 0.15s}
+  .edit-btn:hover{background:#E6F1FB;color:#0C447C;border-color:#85B7EB}
   .s-todo{background:#F1EFE8;color:#444441}.s-inprogress{background:#E6F1FB;color:#0C447C}
   .s-review{background:#FAEEDA;color:#633806}.s-done{background:#EAF3DE;color:#27500A}
   .due{display:flex;align-items:center;gap:3px}
@@ -107,8 +112,8 @@
 <!-- ログイン画面 -->
 <div id="login-screen">
   <div class="login-card">
-    <div class="login-logo">チームタスク</div>
-    <div class="login-sub">チームのメールアドレスとパスワードでログイン</div>
+    <div class="login-logo">営業予定表</div>
+    <div class="login-sub">メールアドレスとパスワードでログイン</div>
     <div class="login-field">
       <label>メールアドレス</label>
       <input type="email" id="login-email" placeholder="your@email.com" autocomplete="email">
@@ -126,7 +131,7 @@
 <div id="app-screen">
   <div class="container">
     <div class="header">
-      <h1>チームタスク</h1>
+      <h1>営業予定表</h1>
       <div class="header-right">
         <div class="user-badge"><i class="ti ti-user"></i><span id="user-name"></span></div>
         <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> ログアウト</button>
@@ -134,12 +139,21 @@
       </div>
     </div>
     <div class="stats" id="stats"></div>
-    <div class="filters">
+    <div class="filters" id="status-filters">
       <button class="filter-btn active" onclick="setFilter('all',this)">すべて</button>
       <button class="filter-btn" onclick="setFilter('todo',this)">未着手</button>
       <button class="filter-btn" onclick="setFilter('inprogress',this)">進行中</button>
       <button class="filter-btn" onclick="setFilter('review',this)">レビュー中</button>
       <button class="filter-btn" onclick="setFilter('done',this)">完了</button>
+    </div>
+    <div class="filters" id="member-filters">
+      <button class="filter-btn active" onclick="setMemberFilter('all',this)">全員</button>
+      <button class="filter-btn" onclick="setMemberFilter('小塩',this)">小塩</button>
+      <button class="filter-btn" onclick="setMemberFilter('竹田',this)">竹田</button>
+      <button class="filter-btn" onclick="setMemberFilter('中嶋',this)">中嶋</button>
+      <button class="filter-btn" onclick="setMemberFilter('松川',this)">松川</button>
+      <button class="filter-btn" onclick="setMemberFilter('佐々木',this)">佐々木</button>
+      <button class="filter-btn" onclick="setMemberFilter('中下',this)">中下</button>
     </div>
     <div class="task-list" id="task-list"><div class="loading">読み込み中...</div></div>
     <button class="add-bottom" onclick="openModal()"><i class="ti ti-plus"></i> タスクを追加</button>
@@ -160,10 +174,11 @@ const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
 
 let tasks = [];
 let filter = 'all';
+let memberFilter = 'all';
 let currentMember = '';
 
 const EMAIL_TO_MEMBER = {
-  'oshio': '小塩', 'takeda': '竹田', 'nakashima': '中嶋',
+  'oshio': '小塩', 'takeda': '竹田', 'nakajima': '中嶋',
   'matsukawa': '松川', 'sasaki': '佐々木', 'nakashita': '中下'
 };
 
@@ -195,6 +210,9 @@ async function doLogin() {
 
 async function doLogout() {
   await sb.auth.signOut();
+  filter = 'all';
+  memberFilter = 'all';
+  tasks = [];
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-password').value = '';
@@ -202,9 +220,15 @@ async function doLogout() {
 
 function showApp(user) {
   currentMember = getMemberFromEmail(user.email);
+  filter = 'all';
+  memberFilter = currentMember;
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('user-name').textContent = currentMember;
+  document.querySelectorAll('#status-filters .filter-btn, #member-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelector('#status-filters .filter-btn:first-child').classList.add('active');
+  const memberBtns = document.querySelectorAll('#member-filters .filter-btn');
+  memberBtns.forEach(b => { if (b.textContent === currentMember) b.classList.add('active'); });
   loadTasks();
 }
 
@@ -230,8 +254,14 @@ async function cycleStatus(id) {
   if (!error) { t.status = next; render(); }
 }
 
-async function addTaskToDb(title, member, status, priority, due) {
-  const { error } = await sb.from('tasks').insert([{ title, member, status, priority, due: due || null }]);
+async function deleteTask(id) {
+  if (!confirm('このタスクを削除しますか？')) return;
+  const { error } = await sb.from('tasks').delete().eq('id', id);
+  if (!error) { tasks = tasks.filter(t => t.id !== id); render(); }
+}
+
+async function addTaskToDb(title, member, status, due, time) {
+  const { error } = await sb.from('tasks').insert([{ title, member, status, due: due || null, time: time || null }]);
   if (!error) { await loadTasks(); return true; }
   return false;
 }
@@ -239,7 +269,14 @@ async function addTaskToDb(title, member, status, priority, due) {
 /* ─── 表示 ─── */
 function setFilter(f, btn) {
   filter = f;
-  document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('#status-filters .filter-btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  render();
+}
+
+function setMemberFilter(m, btn) {
+  memberFilter = m;
+  document.querySelectorAll('#member-filters .filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   render();
 }
@@ -258,7 +295,8 @@ function formatDue(d) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function render() {
-  const visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
+  let visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
+  if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
   const counts = {todo:0,inprogress:0,review:0,done:0};
   tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
   document.getElementById('stats').innerHTML = `
@@ -273,7 +311,6 @@ function render() {
     const due = formatDue(t.due);
     return `<div class="task-card">
       <div class="task-top">
-        <div class="priority-dot ${PRIORITY[t.priority]||'p-med'}"></div>
         <div class="task-title">${escHtml(t.title)}</div>
       </div>
       <div class="task-bottom">
@@ -281,8 +318,13 @@ function render() {
           <div class="avatar ${av}">${escHtml(t.member[0])}</div>
           <span>${escHtml(t.member)}</span>
           ${due ? `<span class="due${due.over?' overdue':''}"><i class="ti ti-calendar-event" style="font-size:12px"></i> ${due.text}</span>` : ''}
+          ${t.time ? `<span class="due"><i class="ti ti-clock" style="font-size:12px"></i> ${escHtml(t.time)}</span>` : ''}
         </div>
-        <button class="status-badge ${s.cls}" onclick="cycleStatus('${t.id}')">${s.label}</button>
+        <div class="task-actions">
+          <button class="status-badge ${s.cls}" onclick="cycleStatus('${t.id}')">${s.label}</button>
+          <button class="edit-btn" onclick="openEditModal('${t.id}')" aria-label="編集"><i class="ti ti-edit"></i> 編集</button>
+          <button class="del-btn" onclick="deleteTask('${t.id}')" aria-label="削除"><i class="ti ti-trash"></i> 削除</button>
+        </div>
       </div>
     </div>`;
   }).join('') : '<p class="empty">タスクがありません</p>';
@@ -308,10 +350,8 @@ function openModal() {
         <div class="field"><label>ステータス</label><select id="f-status">
           <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="review">レビュー中</option><option value="done">完了</option>
         </select></div>
-        <div class="field"><label>優先度</label><select id="f-priority">
-          <option value="high">高</option><option value="med">中</option><option value="low">低</option>
-        </select></div>
         <div class="field"><label>期日</label><input type="date" id="f-due" value="${due}"></div>
+        <div class="field"><label>時間</label><input type="time" id="f-time"></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
           <button class="btn-submit" id="submit-btn" onclick="submitTask()">追加</button>
@@ -323,6 +363,56 @@ function openModal() {
 function handleOverlay(e) { if (e.target.id === 'overlay') closeModal(); }
 function closeModal() { document.getElementById('modal-area').innerHTML = ''; }
 
+function openEditModal(id) {
+  const t = tasks.find(t => t.id === id);
+  if (!t) return;
+  const members = Object.keys(MEMBERS);
+  document.getElementById('modal-area').innerHTML = `
+    <div class="overlay" id="overlay" onclick="handleOverlay(event)">
+      <div class="modal">
+        <h2>タスクを編集</h2>
+        <div class="field"><label>タスク名</label><input type="text" id="f-title" value="${escHtml(t.title)}" autofocus></div>
+        <div class="field"><label>担当者</label><select id="f-member">
+          ${members.map(m => `<option ${t.member===m?'selected':''}>${m}</option>`).join('')}
+        </select></div>
+        <div class="field"><label>ステータス</label><select id="f-status">
+          <option value="todo" ${t.status==='todo'?'selected':''}>未着手</option>
+          <option value="inprogress" ${t.status==='inprogress'?'selected':''}>進行中</option>
+          <option value="review" ${t.status==='review'?'selected':''}>レビュー中</option>
+          <option value="done" ${t.status==='done'?'selected':''}>完了</option>
+        </select></div>
+        <div class="field"><label>期日</label><input type="date" id="f-due" value="${t.due||''}"></div>
+        <div class="field"><label>時間</label><input type="time" id="f-time" value="${t.time||''}"></div>
+        <div class="modal-btns">
+          <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
+          <button class="btn-submit" id="submit-btn" onclick="updateTask('${id}')">保存</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+async function updateTask(id) {
+  const title = document.getElementById('f-title').value.trim();
+  if (!title) { document.getElementById('f-title').focus(); return; }
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true; btn.textContent = '保存中...';
+  const updates = {
+    title,
+    member: document.getElementById('f-member').value,
+    status: document.getElementById('f-status').value,
+    due: document.getElementById('f-due').value || null,
+    time: document.getElementById('f-time').value || null
+  };
+  const { error } = await sb.from('tasks').update(updates).eq('id', id);
+  if (!error) {
+    const t = tasks.find(t => t.id === id);
+    if (t) Object.assign(t, updates);
+    closeModal(); render();
+  } else {
+    btn.disabled = false; btn.textContent = '保存';
+  }
+}
+
 async function submitTask() {
   const title = document.getElementById('f-title').value.trim();
   if (!title) { document.getElementById('f-title').focus(); return; }
@@ -332,8 +422,8 @@ async function submitTask() {
     title,
     document.getElementById('f-member').value,
     document.getElementById('f-status').value,
-    document.getElementById('f-priority').value,
-    document.getElementById('f-due').value
+    document.getElementById('f-due').value,
+    document.getElementById('f-time').value
   );
   if (ok) closeModal();
   else { btn.disabled = false; btn.textContent = '追加'; }
