@@ -478,8 +478,16 @@ function formatDue(d) {
 function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
 
 function render() {
+  const today = new Date(); today.setHours(0,0,0,0);
   let visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
   if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
+  // 完了かつ期日が本日以前は非表示
+  visible = visible.filter(t => {
+    if (t.status !== 'done') return true;
+    if (!t.due) return false;
+    const due = new Date(t.due + 'T00:00:00');
+    return due > today;
+  });
   const counts = {todo:0,inprogress:0,done:0};
   tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
   document.getElementById('btn-new').style.display = 'flex';
