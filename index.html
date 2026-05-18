@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>営業予定表</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
 <script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
@@ -142,15 +142,17 @@
   <div class="login-card">
     <div class="login-logo">営業予定表</div>
     <div class="login-sub">メールアドレスとパスワードでログイン</div>
-    <div class="login-field">
-      <label>メールアドレス</label>
-      <input type="email" id="login-email" name="email" placeholder="your@email.com" autocomplete="email">
-    </div>
-    <div class="login-field">
-      <label>パスワード</label>
-      <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password">
-    </div>
-    <button class="login-btn" id="login-btn" onclick="doLogin()">ログイン</button>
+    <form id="login-form" onsubmit="handleLoginSubmit(event)" action="javascript:void(0)">
+      <div class="login-field">
+        <label>メールアドレス</label>
+        <input type="email" id="login-email" name="email" placeholder="your@email.com" autocomplete="username">
+      </div>
+      <div class="login-field">
+        <label>パスワード</label>
+        <input type="password" id="login-password" name="password" placeholder="••••••••" autocomplete="current-password">
+      </div>
+      <button type="submit" class="login-btn" id="login-btn">ログイン</button>
+    </form>
     <div class="login-error" id="login-error"></div>
   </div>
 </div>
@@ -234,6 +236,11 @@ function getMemberFromEmail(email) {
     if (local.includes(key)) return name;
   }
   return Object.values(MEMBERS)[0];
+}
+
+function handleLoginSubmit(e) {
+  e.preventDefault();
+  doLogin();
 }
 
 /* ─── 認証 ─── */
@@ -534,7 +541,6 @@ window.addEventListener('load', () => {
   sb.auth.getSession().then(({ data }) => {
     if (data.session) showApp(data.session.user);
   });
-  document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
 });
 </script>
 </body>
