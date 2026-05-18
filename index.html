@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>営業予定表</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -210,7 +210,7 @@
 <script>
 const SUPABASE_URL = 'https://pbgxirbbuzvbzpqiuvxu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZ3hpcmJidXp2YnpwcWl1dnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzY4NzQsImV4cCI6MjA5NDY1Mjg3NH0.4MK9lTpyJ6Tc10kOLSCQfeUNuDTxNfhQP0SqI8UoqI8';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sb;
 
 const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
 const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},review:{label:'レビュー中',cls:'s-review'},done:{label:'完了',cls:'s-done'}};
@@ -286,12 +286,6 @@ function showApp(user) {
   document.querySelectorAll('#member-filters .filter-btn').forEach(b => { if (b.textContent.trim() === currentMember) b.classList.add('active'); });
   loadTasks();
 }
-
-document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
-
-sb.auth.getSession().then(({ data }) => {
-  if (data.session) showApp(data.session.user);
-});
 
 /* ─── タスク操作 ─── */
 async function loadTasks() {
@@ -537,6 +531,14 @@ async function submitTask() {
 }
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+
+document.addEventListener('DOMContentLoaded', () => {
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+  sb.auth.getSession().then(({ data }) => {
+    if (data.session) showApp(data.session.user);
+  });
+  document.getElementById('login-password').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+});
 </script>
 </body>
 </html>
