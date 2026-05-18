@@ -95,14 +95,14 @@
   .empty,.loading{font-size:14px;color:var(--text3);text-align:center;padding:3rem 0}
   .add-bottom{display:flex;align-items:center;gap:6px;font-size:13px;padding:12px;border-radius:var(--radius-sm);border:1px dashed var(--border2);background:transparent;color:var(--text2);cursor:pointer;margin-top:8px;width:100%;justify-content:center;min-height:44px;font-family:inherit;transition:all 0.15s}
   .add-bottom:hover{background:var(--surface);color:var(--text)}
-  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:flex-end;justify-content:center}
+  .overlay{position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:100;display:flex;align-items:flex-end;justify-content:center;overflow-y:auto}
   @media(min-width:480px){.overlay{align-items:center}}
-  .modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:20px 16px 32px;width:100%;max-width:480px}
-  @media(min-width:480px){.modal{border-radius:var(--radius);padding:24px}}
+  .modal{background:var(--surface);border-radius:var(--radius) var(--radius) 0 0;padding:20px 16px env(safe-area-inset-bottom, 24px);width:100%;max-width:480px;max-height:90vh;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  @media(min-width:480px){.modal{border-radius:var(--radius);padding:24px;max-height:85vh}}
   .modal h2{font-size:17px;font-weight:600;margin-bottom:16px}
   .field{margin-bottom:12px}
   .field label{font-size:12px;color:var(--text2);display:block;margin-bottom:4px}
-  .field input,.field select{width:100%;font-size:15px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px;outline:none;transition:border-color 0.15s}
+  .field input,.field select{width:100%;font-size:15px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:44px;outline:none;transition:border-color 0.15s;text-align:left}
   .field input:focus,.field select:focus{border-color:var(--accent)}
   .modal-btns{display:flex;gap:8px;margin-top:16px}
   .modal-btns button{flex:1;font-size:14px;padding:11px;min-height:44px;border-radius:var(--radius-sm);border:1px solid var(--border2);cursor:pointer;font-family:inherit;font-weight:500;transition:all 0.15s}
@@ -265,6 +265,7 @@ function handleLoginSubmit(e) {
 
 /* ─── 認証 ─── */
 async function doLogin() {
+  if (!sb) { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
   const email = document.getElementById('login-email').value.trim();
   const password = document.getElementById('login-password').value;
   const btn = document.getElementById('login-btn');
