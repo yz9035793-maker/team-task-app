@@ -160,6 +160,20 @@ const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
 
 let tasks = [];
 let filter = 'all';
+let currentMember = '';
+
+const EMAIL_TO_MEMBER = {
+  'oshio': '小塩', 'takeda': '竹田', 'nakashima': '中嶋',
+  'matsukawa': '松川', 'sasaki': '佐々木', 'nakashita': '中下'
+};
+
+function getMemberFromEmail(email) {
+  const local = email.split('@')[0].toLowerCase();
+  for (const [key, name] of Object.entries(EMAIL_TO_MEMBER)) {
+    if (local.includes(key)) return name;
+  }
+  return Object.values(MEMBERS)[0];
+}
 
 /* ─── 認証 ─── */
 async function doLogin() {
@@ -187,9 +201,10 @@ async function doLogout() {
 }
 
 function showApp(user) {
+  currentMember = getMemberFromEmail(user.email);
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
-  document.getElementById('user-name').textContent = user.email.split('@')[0];
+  document.getElementById('user-name').textContent = currentMember;
   loadTasks();
 }
 
@@ -216,8 +231,8 @@ async function cycleStatus(id) {
 }
 
 async function addTaskToDb(title, member, status, priority, due) {
-  const { data, error } = await sb.from('tasks').insert([{ title, member, status, priority, due: due || null }]).select().single();
-  if (!error && data) { tasks.unshift(data); render(); return true; }
+  const { error } = await sb.from('tasks').insert([{ title, member, status, priority, due: due || null }]);
+  if (!error) { await loadTasks(); return true; }
   return false;
 }
 
@@ -283,7 +298,12 @@ function openModal() {
         <h2>新規タスク</h2>
         <div class="field"><label>タスク名</label><input type="text" id="f-title" placeholder="タスクを入力" autofocus></div>
         <div class="field"><label>担当者</label><select id="f-member">
-          <option>小塩</option><option>竹田</option><option>中嶋</option><option>松川</option><option>佐々木</option><option>中下</option>
+          <option ${currentMember==='小塩'?'selected':''}>小塩</option>
+          <option ${currentMember==='竹田'?'selected':''}>竹田</option>
+          <option ${currentMember==='中嶋'?'selected':''}>中嶋</option>
+          <option ${currentMember==='松川'?'selected':''}>松川</option>
+          <option ${currentMember==='佐々木'?'selected':''}>佐々木</option>
+          <option ${currentMember==='中下'?'selected':''}>中下</option>
         </select></div>
         <div class="field"><label>ステータス</label><select id="f-status">
           <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="review">レビュー中</option><option value="done">完了</option>
