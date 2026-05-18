@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>営業予定表</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.0.0/tabler-icons.min.css">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
@@ -18,7 +18,6 @@
     :root { --bg:#18181a; --surface:#232326; --surface2:#2c2c30; --border:rgba(255,255,255,0.09); --border2:rgba(255,255,255,0.16); --text:#f0f0ec; --text2:#9e9e98; --text3:#666662; }
     .s-todo{background:#2a2a26!important;color:#b0b0a8!important}
     .s-inprogress{background:#0e2236!important;color:#7ab8f0!important}
-    .s-review{background:#2a1e08!important;color:#f0b860!important}
     .s-done{background:#102210!important;color:#7ac870!important}
     .av-blue{background:#0e2236!important;color:#7ab8f0!important}
     .av-teal{background:#0a2018!important;color:#5dcaa5!important}
@@ -54,8 +53,8 @@
   .btn-new:hover{background:var(--surface2)}
   .btn-logout{display:flex;align-items:center;gap:3px;font-size:11px;padding:5px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;min-height:36px;transition:all 0.15s}
   .btn-logout:hover{background:var(--surface2);color:var(--text)}
-  .stats{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:1.25rem}
-  @media(min-width:480px){.stats{grid-template-columns:repeat(4,1fr)}}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
+  @media(min-width:480px){.stats{grid-template-columns:repeat(3,1fr)}}
   .stat{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
   .stat-label{font-size:11px;color:var(--text2);margin-bottom:3px}
   .stat-num{font-size:22px;font-weight:600}
@@ -83,7 +82,7 @@
   .edit-btn{display:flex;align-items:center;gap:3px;padding:0 7px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;flex-shrink:0;font-size:11px;font-family:inherit;transition:all 0.15s}
   .edit-btn:hover{background:#E6F1FB;color:#0C447C;border-color:#85B7EB}
   .s-todo{background:#F1EFE8;color:#444441}.s-inprogress{background:#E6F1FB;color:#0C447C}
-  .s-review{background:#FAEEDA;color:#633806}.s-done{background:#EAF3DE;color:#27500A}
+  .s-done{background:#EAF3DE;color:#27500A}
   .due{display:flex;align-items:center;gap:3px}
   .due.overdue{color:#A32D2D}
   .empty,.loading{font-size:14px;color:var(--text3);text-align:center;padding:3rem 0}
@@ -114,7 +113,7 @@
   /* カレンダー */
   .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .cal-nav{display:flex;align-items:center;gap:8px}
-  .cal-nav button{display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:16px;transition:all 0.15s}
+  .cal-nav button{display:flex;align-items:center;gap:4px;padding:0 10px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s}
   .cal-nav button:hover{background:var(--surface2);color:var(--text)}
   .cal-title{font-size:15px;font-weight:600;min-width:120px;text-align:center}
   .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:2px}
@@ -131,9 +130,9 @@
   .cal-task{font-size:10px;padding:2px 5px;border-radius:4px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer}
   .cal-task.s-todo{background:#F1EFE8;color:#444441}
   .cal-task.s-inprogress{background:#E6F1FB;color:#0C447C}
-  .cal-task.s-review{background:#FAEEDA;color:#633806}
   .cal-task.s-done{background:#EAF3DE;color:#27500A}
   .cal-more{font-size:10px;color:var(--text3);padding:1px 4px}
+  .cal-initial{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;background:rgba(0,0,0,0.1);font-size:9px;font-weight:600;flex-shrink:0;margin-right:3px;vertical-align:middle}
 </style>
 </head>
 <body>
@@ -178,7 +177,6 @@
       <button class="filter-btn active" onclick="setFilter('all',this)">すべて</button>
       <button class="filter-btn" onclick="setFilter('todo',this)">未着手</button>
       <button class="filter-btn" onclick="setFilter('inprogress',this)">進行中</button>
-      <button class="filter-btn" onclick="setFilter('review',this)">レビュー中</button>
       <button class="filter-btn" onclick="setFilter('done',this)">完了</button>
     </div>
     <div class="filters" id="member-filters">
@@ -194,9 +192,9 @@
     <div id="cal-view" style="display:none">
       <div class="cal-header">
         <div class="cal-nav">
-          <button onclick="moveMonth(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i></button>
+          <button onclick="moveMonth(-1)"><i class="ti ti-chevron-left" aria-hidden="true"></i> 前月</button>
           <div class="cal-title" id="cal-title"></div>
-          <button onclick="moveMonth(1)"><i class="ti ti-chevron-right" aria-hidden="true"></i></button>
+          <button onclick="moveMonth(1)">次月 <i class="ti ti-chevron-right" aria-hidden="true"></i></button>
         </div>
       </div>
       <div class="cal-grid" id="cal-grid"></div>
@@ -213,8 +211,8 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let sb;
 
 const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
-const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},review:{label:'レビュー中',cls:'s-review'},done:{label:'完了',cls:'s-done'}};
-const NEXT = {todo:'inprogress',inprogress:'review',review:'done',done:'todo'};
+const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},done:{label:'完了',cls:'s-done'}};
+const NEXT = {todo:'inprogress',inprogress:'done',done:'todo'};
 const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
 
 let tasks = [];
@@ -355,7 +353,7 @@ function renderCalendar() {
     const dayTasks = filtered.filter(t => t.due === dateStr);
     const cls = [isToday?'today':'', dow===0?'sunday':dow===6?'saturday':''].filter(Boolean).join(' ');
     let taskHtml = dayTasks.slice(0,3).map(t =>
-      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="openEditModal('${t.id}')" title="${escHtml(t.title)}">${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
+      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="openEditModal('${t.id}')" title="${escHtml(t.title)}"><span class="cal-initial">${escHtml(t.member[0])}</span>${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
     ).join('');
     if (dayTasks.length > 3) taskHtml += `<div class="cal-more">+${dayTasks.length-3}件</div>`;
     html += `<div class="cal-cell ${cls}"><div class="cal-day">${d}</div>${taskHtml}</div>`;
@@ -368,6 +366,7 @@ function renderCalendar() {
 }
 
 
+function setFilter(f, btn) {
   filter = f;
   document.querySelectorAll('#status-filters .filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
@@ -398,12 +397,11 @@ function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'
 function render() {
   let visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
   if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
-  const counts = {todo:0,inprogress:0,review:0,done:0};
+  const counts = {todo:0,inprogress:0,done:0};
   tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="stat-label">未着手</div><div class="stat-num">${counts.todo}</div></div>
     <div class="stat"><div class="stat-label">進行中</div><div class="stat-num">${counts.inprogress}</div></div>
-    <div class="stat"><div class="stat-label">レビュー中</div><div class="stat-num">${counts.review}</div></div>
     <div class="stat"><div class="stat-label">完了</div><div class="stat-num">${counts.done}</div></div>
   `;
   document.getElementById('task-list').innerHTML = visible.length ? visible.map(t => {
@@ -449,7 +447,7 @@ function openModal() {
           <option ${currentMember==='中下'?'selected':''}>中下</option>
         </select></div>
         <div class="field"><label>ステータス</label><select id="f-status">
-          <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="review">レビュー中</option><option value="done">完了</option>
+          <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="done">完了</option>
         </select></div>
         <div class="field"><label>期日</label><input type="date" id="f-due" value="${due}"></div>
         <div class="field"><label>時間</label><input type="time" id="f-time"></div>
@@ -479,7 +477,6 @@ function openEditModal(id) {
         <div class="field"><label>ステータス</label><select id="f-status">
           <option value="todo" ${t.status==='todo'?'selected':''}>未着手</option>
           <option value="inprogress" ${t.status==='inprogress'?'selected':''}>進行中</option>
-          <option value="review" ${t.status==='review'?'selected':''}>レビュー中</option>
           <option value="done" ${t.status==='done'?'selected':''}>完了</option>
         </select></div>
         <div class="field"><label>期日</label><input type="date" id="f-due" value="${t.due||''}"></div>
@@ -532,8 +529,8 @@ async function submitTask() {
 
 document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
 
-document.addEventListener('DOMContentLoaded', () => {
-  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+window.addEventListener('load', () => {
+  sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   sb.auth.getSession().then(({ data }) => {
     if (data.session) showApp(data.session.user);
   });
