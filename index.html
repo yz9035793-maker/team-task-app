@@ -165,7 +165,7 @@
       <div class="header-right">
         <div class="user-badge"><i class="ti ti-user"></i><span id="user-name"></span></div>
         <button class="btn-logout" onclick="doLogout()"><i class="ti ti-logout"></i> ログアウト</button>
-        <button class="btn-new" onclick="openModal()"><i class="ti ti-plus"></i> 新規タスク</button>
+        <button id="btn-new" class="btn-new" onclick="openModal()"><i class="ti ti-plus"></i> 新規タスク</button>
       </div>
     </div>
     <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
@@ -201,7 +201,7 @@
       </div>
       <div class="cal-grid" id="cal-grid"></div>
     </div>
-    <button class="add-bottom" onclick="openModal()"><i class="ti ti-plus"></i> タスクを追加</button>
+    <button id="add-bottom-btn" class="add-bottom" onclick="openModal()"><i class="ti ti-plus"></i> タスクを追加</button>
   </div>
 </div>
 
@@ -294,7 +294,7 @@ function showApp(user) {
 
 /* ─── タスク操作 ─── */
 async function loadTasks() {
-  const { data, error } = await sb.from('tasks').select('*').order('created_at', { ascending: false });
+  const { data, error } = await sb.from('tasks').select('*').order('due', { ascending: true, nullsFirst: false });
   if (error) { console.error(error); return; }
   tasks = data || [];
   render();
@@ -360,7 +360,7 @@ function renderCalendar() {
     const dayTasks = filtered.filter(t => t.due === dateStr);
     const cls = [isToday?'today':'', dow===0?'sunday':dow===6?'saturday':''].filter(Boolean).join(' ');
     let taskHtml = dayTasks.slice(0,3).map(t =>
-      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="openEditModal('${t.id}')" title="${escHtml(t.title)}"><span class="cal-initial">${escHtml(t.member[0])}</span>${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
+      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" ${t.member===currentMember?`onclick="openEditModal('${t.id}')"`:''} title="${escHtml(t.title)}" style="${t.member!==currentMember?'cursor:default':''}"><span class="cal-initial">${escHtml(t.member[0])}</span>${t.time?t.time.slice(0,5)+' ':''} ${escHtml(t.title)}</div>`
     ).join('');
     if (dayTasks.length > 3) taskHtml += `<div class="cal-more">+${dayTasks.length-3}件</div>`;
     html += `<div class="cal-cell ${cls}"><div class="cal-day">${d}</div>${taskHtml}</div>`;
@@ -406,6 +406,8 @@ function render() {
   if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
   const counts = {todo:0,inprogress:0,done:0};
   tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
+  document.getElementById('btn-new').style.display = 'flex';
+  document.getElementById('add-bottom-btn').style.display = 'flex';
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="stat-label">未着手</div><div class="stat-num">${counts.todo}</div></div>
     <div class="stat"><div class="stat-label">進行中</div><div class="stat-num">${counts.inprogress}</div></div>
@@ -415,6 +417,7 @@ function render() {
     const s = STATUS[t.status] || STATUS.todo;
     const av = MEMBERS[t.member] || 'av-blue';
     const due = formatDue(t.due);
+    const isOwn = t.member === currentMember;
     return `<div class="task-card">
       <div class="task-top">
         <div class="task-title">${escHtml(t.title)}</div>
@@ -427,9 +430,9 @@ function render() {
           ${t.time ? `<span class="due"><i class="ti ti-clock" style="font-size:12px"></i> ${escHtml(t.time)}</span>` : ''}
         </div>
         <div class="task-actions">
-          <button class="status-badge ${s.cls}" onclick="cycleStatus('${t.id}')">${s.label}</button>
-          <button class="edit-btn" onclick="openEditModal('${t.id}')" aria-label="編集"><i class="ti ti-edit"></i> 編集</button>
-          <button class="del-btn" onclick="deleteTask('${t.id}')" aria-label="削除"><i class="ti ti-trash"></i> 削除</button>
+          <span class="status-badge ${s.cls}" style="cursor:${isOwn?'pointer':'default'}" ${isOwn?`onclick="cycleStatus('${t.id}')"`:''}>${s.label}</span>
+          <button class="edit-btn" ${isOwn?`onclick="openEditModal('${t.id}')"`:'disabled'} aria-label="編集" style="${isOwn?'':'opacity:0;pointer-events:none'}"><i class="ti ti-edit"></i> 編集</button>
+          <button class="del-btn" ${isOwn?`onclick="deleteTask('${t.id}')"`:'disabled'} aria-label="削除" style="${isOwn?'':'opacity:0;pointer-events:none'}"><i class="ti ti-trash"></i> 削除</button>
         </div>
       </div>
     </div>`;
@@ -444,14 +447,9 @@ function openModal() {
     <div class="overlay" id="overlay" onclick="handleOverlay(event)">
       <div class="modal">
         <h2>新規タスク</h2>
-        <div class="field"><label>タスク名</label><input type="text" id="f-title" placeholder="タスクを入力" autofocus></div>
-        <div class="field"><label>担当者</label><select id="f-member">
-          <option ${currentMember==='小塩'?'selected':''}>小塩</option>
-          <option ${currentMember==='竹田'?'selected':''}>竹田</option>
-          <option ${currentMember==='中嶋'?'selected':''}>中嶋</option>
-          <option ${currentMember==='松川'?'selected':''}>松川</option>
-          <option ${currentMember==='佐々木'?'selected':''}>佐々木</option>
-          <option ${currentMember==='中下'?'selected':''}>中下</option>
+        <div class="field"><label>タスク名</label><input type="text" id="f-title" placeholder="タスクを入力" autofocus oninput="document.getElementById('f-title-error').style.display='none'"><div id="f-title-error" style="display:none;color:#A32D2D;font-size:12px;margin-top:4px;">* 必須項目です</div></div>
+        <div class="field"><label>担当者</label><select id="f-member" disabled style="opacity:0.7">
+          <option selected>${currentMember}</option>
         </select></div>
         <div class="field"><label>ステータス</label><select id="f-status">
           <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="done">完了</option>
@@ -477,7 +475,7 @@ function openEditModal(id) {
     <div class="overlay" id="overlay" onclick="handleOverlay(event)">
       <div class="modal">
         <h2>タスクを編集</h2>
-        <div class="field"><label>タスク名</label><input type="text" id="f-title" value="${escHtml(t.title)}" autofocus></div>
+        <div class="field"><label>タスク名</label><input type="text" id="f-title" value="${escHtml(t.title)}" autofocus oninput="document.getElementById('f-title-error').style.display='none'"><div id="f-title-error" style="display:none;color:#A32D2D;font-size:12px;margin-top:4px;">* 必須項目です</div></div>
         <div class="field"><label>担当者</label><select id="f-member">
           ${members.map(m => `<option ${t.member===m?'selected':''}>${m}</option>`).join('')}
         </select></div>
@@ -498,7 +496,12 @@ function openEditModal(id) {
 
 async function updateTask(id) {
   const title = document.getElementById('f-title').value.trim();
-  if (!title) { document.getElementById('f-title').focus(); return; }
+  if (!title) {
+    document.getElementById('f-title').focus();
+    document.getElementById('f-title-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('f-title-error').style.display = 'none';
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '保存中...';
   const updates = {
@@ -520,12 +523,17 @@ async function updateTask(id) {
 
 async function submitTask() {
   const title = document.getElementById('f-title').value.trim();
-  if (!title) { document.getElementById('f-title').focus(); return; }
+  if (!title) {
+    document.getElementById('f-title').focus();
+    document.getElementById('f-title-error').style.display = 'block';
+    return;
+  }
+  document.getElementById('f-title-error').style.display = 'none';
   const btn = document.getElementById('submit-btn');
   btn.disabled = true; btn.textContent = '追加中...';
   const ok = await addTaskToDb(
     title,
-    document.getElementById('f-member').value,
+    currentMember,
     document.getElementById('f-status').value,
     document.getElementById('f-due').value,
     document.getElementById('f-time').value
