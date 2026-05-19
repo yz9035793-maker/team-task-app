@@ -194,7 +194,8 @@
       <button class="filter-btn active" onclick="setFilter('all',this)">すべて</button>
       <button class="filter-btn" onclick="setFilter('todo',this)">未着手</button>
       <button class="filter-btn" onclick="setFilter('inprogress',this)">進行中</button>
-      <button class="filter-btn" onclick="setFilter('done',this)">完了</button>
+      <button class="filter-btn" onclick="setFilter('done',this)">完了(期日前)</button>
+      <button class="filter-btn" onclick="setFilter('done-past',this)">完了(期日後)</button>
     </div>
     <div class="filters" id="member-filters">
       <button class="filter-btn active" onclick="setMemberFilter('all',this)">全員</button>
@@ -572,15 +573,20 @@ function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 function render() {
   const today = new Date(); today.setHours(0,0,0,0);
-  let visible = filter === 'all' ? tasks : tasks.filter(t => t.status === filter);
+  let visible;
+  if (filter === 'done-past') {
+    // 完了(期日後)：完了かつ期日が本日以前
+    visible = tasks.filter(t => t.status === 'done' && t.due && new Date(t.due + 'T00:00:00') <= today);
+  } else if (filter === 'done') {
+    // 完了(期日前)：完了かつ期日が本日より後
+    visible = tasks.filter(t => t.status === 'done' && t.due && new Date(t.due + 'T00:00:00') > today);
+  } else if (filter === 'all') {
+    // すべて：完了かつ期日以前は除外
+    visible = tasks.filter(t => !(t.status === 'done' && (!t.due || new Date(t.due + 'T00:00:00') <= today)));
+  } else {
+    visible = tasks.filter(t => t.status === filter);
+  }
   if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
-  // 完了かつ期日が本日以前は非表示
-  visible = visible.filter(t => {
-    if (t.status !== 'done') return true;
-    if (!t.due) return false;
-    const due = new Date(t.due + 'T00:00:00');
-    return due > today;
-  });
   const counts = {todo:0,inprogress:0,done:0};
   tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
   document.getElementById('btn-new') && (document.getElementById('btn-new').style.display = 'flex');
