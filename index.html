@@ -72,6 +72,22 @@
   .task-list{display:flex;flex-direction:column;gap:8px}
   .task-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;transition:border-color 0.15s}
   .task-card:hover{border-color:var(--border2)}
+  .task-card.today-card{border-color:#378ADD;border-width:1.5px}
+  .task-memo{font-size:12px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:0.5px solid var(--border);line-height:1.5;white-space:pre-wrap}
+  /* 週表示 */
+  .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem}
+  .week-col{min-height:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 4px;overflow:hidden}
+  .week-col.today-col{border-color:#378ADD;border-width:1.5px}
+  .week-dow{font-size:11px;color:var(--text3);text-align:center;font-weight:500;margin-bottom:4px}
+  .week-day{font-size:13px;font-weight:600;text-align:center;margin-bottom:6px}
+  .week-col.today-col .week-day{background:var(--accent);color:#fff;border-radius:50%;width:22px;height:22px;display:flex;align-items:center;justify-content:center;margin:0 auto 6px}
+  .week-col.sunday .week-dow,.week-col.sunday .week-day{color:#E24B4A}
+  .week-col.saturday .week-dow,.week-col.saturday .week-day{color:#378ADD}
+  .week-task{font-size:10px;padding:2px 4px;border-radius:4px;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer}
+  .week-nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
+  .week-title{font-size:14px;font-weight:600}
+  .week-nav button{display:flex;align-items:center;gap:4px;padding:0 10px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s}
+  .week-nav button:hover{background:var(--surface2);color:var(--text)}
   .task-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
   .priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
   .p-high{background:#E24B4A}.p-med{background:#EF9F27}.p-low{background:#639922}
@@ -179,7 +195,8 @@
     <div style="display:flex;justify-content:flex-end;margin-bottom:1rem;">
       <div class="view-toggle">
         <button class="view-btn active" id="btn-list" onclick="setView('list')"><i class="ti ti-list" aria-hidden="true"></i> リスト</button>
-        <button class="view-btn" id="btn-cal" onclick="setView('calendar')"><i class="ti ti-calendar" aria-hidden="true"></i> カレンダー</button>
+        <button class="view-btn" id="btn-week" onclick="setView('week')"><i class="ti ti-calendar-week" aria-hidden="true"></i> 週</button>
+        <button class="view-btn" id="btn-cal" onclick="setView('calendar')"><i class="ti ti-calendar" aria-hidden="true"></i> 月</button>
       </div>
     </div>
     <div id="notif-banner" style="display:none;background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
@@ -225,6 +242,14 @@
       </div>
       <div class="cal-grid" id="cal-grid"></div>
     </div>
+    <div id="week-view" style="display:none">
+      <div class="week-nav">
+        <button onclick="moveWeek(-1)"><i class="ti ti-chevron-left"></i> 前週</button>
+        <div class="week-title" id="week-title"></div>
+        <button onclick="moveWeek(1)">次週 <i class="ti ti-chevron-right"></i></button>
+      </div>
+      <div class="week-grid" id="week-grid"></div>
+    </div>
     <button id="add-bottom-btn" class="add-bottom" onclick="openModal()"><i class="ti ti-plus"></i> タスクを追加</button>
   </div>
 </div>
@@ -249,6 +274,7 @@ let currentMember = '';
 let viewMode = 'list';
 let calYear = new Date().getFullYear();
 let calMonth = new Date().getMonth();
+let weekStart = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - d.getDay()); return d; })();
 
 const EMAIL_TO_MEMBER = {
   'koshio': '小塩', 'takeda': '竹田', 'nakashima': '中嶋',
@@ -377,9 +403,11 @@ function showApp(user) {
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('task-list').style.display = 'none';
   document.getElementById('cal-view').style.display = 'block';
+  document.getElementById('week-view').style.display = 'none';
   document.getElementById('status-filters').style.display = 'none';
   document.getElementById('user-name').textContent = currentMember;
   document.getElementById('btn-list').classList.remove('active');
+  document.getElementById('btn-week').classList.remove('active');
   document.getElementById('btn-cal').classList.add('active');
   document.querySelectorAll('#status-filters .filter-btn, #member-filters .filter-btn').forEach(b => b.classList.remove('active'));
   document.querySelector('#status-filters .filter-btn:first-child').classList.add('active');
@@ -394,6 +422,7 @@ async function loadTasks() {
   if (error) { console.error(error); return; }
   tasks = data || [];
   if (viewMode === 'calendar') renderCalendar();
+  else if (viewMode === 'week') renderWeek();
   else render();
 }
 
@@ -412,8 +441,8 @@ async function deleteTask(id) {
   tasks = tasks.filter(t => t.id !== id); render();
 }
 
-async function addTaskToDb(title, member, status, due, time) {
-  const { error } = await sb.from('tasks').insert([{ title, member, status, due: due || null, time: time || null }]);
+async function addTaskToDb(title, member, status, due, time, memo) {
+  const { error } = await sb.from('tasks').insert([{ title, member, status, due: due || null, time: time || null, memo: memo || null }]);
   if (!error) { await loadTasks(); return true; }
   return false;
 }
@@ -422,12 +451,49 @@ async function addTaskToDb(title, member, status, due, time) {
 function setView(v) {
   viewMode = v;
   document.getElementById('btn-list').classList.toggle('active', v === 'list');
+  document.getElementById('btn-week').classList.toggle('active', v === 'week');
   document.getElementById('btn-cal').classList.toggle('active', v === 'calendar');
   document.getElementById('task-list').style.display = v === 'list' ? 'flex' : 'none';
+  document.getElementById('week-view').style.display = v === 'week' ? 'block' : 'none';
   document.getElementById('cal-view').style.display = v === 'calendar' ? 'block' : 'none';
   document.getElementById('status-filters').style.display = v === 'list' ? 'flex' : 'none';
   if (v === 'calendar') renderCalendar();
+  else if (v === 'week') renderWeek();
   else render();
+}
+
+function moveWeek(d) {
+  weekStart = new Date(weekStart);
+  weekStart.setDate(weekStart.getDate() + d * 7);
+  renderWeek();
+}
+
+function renderWeek() {
+  const filtered = memberFilter === 'all' ? tasks : tasks.filter(t => t.member === memberFilter);
+  const dows = ['日','月','火','水','木','金','土'];
+  const today = new Date(); today.setHours(0,0,0,0);
+  const endDate = new Date(weekStart); endDate.setDate(endDate.getDate() + 6);
+  const m1 = weekStart.getMonth()+1, d1 = weekStart.getDate();
+  const m2 = endDate.getMonth()+1, d2 = endDate.getDate();
+  document.getElementById('week-title').textContent = `${m1}/${d1} 〜 ${m2}/${d2}`;
+  let html = dows.map((dow, i) => {
+    const dt = new Date(weekStart); dt.setDate(dt.getDate() + i);
+    const dateStr = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`;
+    const isToday = dt.getTime() === today.getTime();
+    const dayTasks = filtered.filter(t => t.due === dateStr);
+    const cls = [isToday?'today-col':'', i===0?'sunday':i===6?'saturday':''].filter(Boolean).join(' ');
+    const taskHtml = dayTasks.map(t =>
+      `<div class="week-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="event.stopPropagation();${t.member===currentMember?`openEditModal('${t.id}')`:`openViewModal('${t.id}')`}" title="${escHtml(t.title)}">
+        <span style="font-size:9px;font-weight:600">${INITIALS[t.member]||t.member[0]}</span> ${escHtml(t.title)}
+      </div>`
+    ).join('');
+    return `<div class="week-col ${cls}" onclick="openModalWithDate('${dateStr}')">
+      <div class="week-dow">${dow}</div>
+      <div class="week-day">${dt.getDate()}</div>
+      ${taskHtml}
+    </div>`;
+  }).join('');
+  document.getElementById('week-grid').innerHTML = html;
 }
 
 function setCalYear(y) { calYear = parseInt(y); renderCalendar(); }
@@ -503,6 +569,7 @@ function openModalWithDate(dateStr) {
         </select></div>
         <div class="field"><label>期日</label>${dateSelects(dateStr)}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions('00:00')}</select></div>
+        <div class="field"><label>メモ</label><textarea id="f-memo" placeholder="備考・メモを入力（任意）" style="width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:72px;outline:none;resize:vertical"></textarea></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
           <button class="btn-submit" id="submit-btn" onclick="submitTask()">追加</button>
@@ -601,7 +668,8 @@ function render() {
     const av = MEMBERS[t.member] || 'av-blue';
     const due = formatDue(t.due);
     const isOwn = t.member === currentMember;
-    return `<div class="task-card">
+    const isToday = t.due && new Date(t.due + 'T00:00:00').getTime() === today.getTime();
+    return `<div class="task-card${isToday?' today-card':''}">
       <div class="task-top">
         <div class="task-title">${escHtml(t.title)}</div>
       </div>
@@ -618,6 +686,7 @@ function render() {
           <button class="del-btn" ${isOwn?`onclick="deleteTask('${t.id}')"`:'disabled'} aria-label="削除" style="${isOwn?'':'opacity:0;pointer-events:none'}"><i class="ti ti-trash"></i> 削除</button>
         </div>
       </div>
+      ${t.memo ? `<div class="task-memo">${escHtml(t.memo)}</div>` : ''}
     </div>`;
   }).join('') : '<p class="empty">タスクがありません</p>';
 }
@@ -663,6 +732,7 @@ function openModal() {
         </select></div>
         <div class="field"><label>期日</label>${dateSelects(due)}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions('00:00')}</select></div>
+        <div class="field"><label>メモ</label><textarea id="f-memo" placeholder="備考・メモを入力（任意）" style="width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:72px;outline:none;resize:vertical"></textarea></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
           <button class="btn-submit" id="submit-btn" onclick="submitTask()">追加</button>
@@ -740,6 +810,7 @@ function openEditModal(id) {
         </select></div>
         <div class="field"><label>期日</label>${dateSelects(t.due||'')}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions(t.time||'00:00')}</select></div>
+        <div class="field"><label>メモ</label><textarea id="f-memo" placeholder="備考・メモを入力（任意）" style="width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:72px;outline:none;resize:vertical">${escHtml(t.memo||'')}</textarea></div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">キャンセル</button>
           <button class="del-btn" style="flex:1;background:var(--surface2);border-color:var(--border2);color:var(--text2);height:44px;justify-content:center" onclick="deleteTaskFromModal('${id}')"><i class="ti ti-trash"></i> 削除</button>
@@ -774,7 +845,8 @@ async function updateTask(id) {
     member: document.getElementById('f-member').value,
     status: document.getElementById('f-status').value,
     due: getDueValue() || null,
-    time: document.getElementById('f-time').value || null
+    time: document.getElementById('f-time').value || null,
+    memo: document.getElementById('f-memo').value || null
   };
   const { error } = await sb.from('tasks').update(updates).eq('id', id);
   if (!error) {
@@ -801,7 +873,8 @@ async function submitTask() {
     currentMember,
     document.getElementById('f-status').value,
     getDueValue(),
-    document.getElementById('f-time').value
+    document.getElementById('f-time').value,
+    document.getElementById('f-memo').value
   );
   if (ok) closeModal();
   else { btn.disabled = false; btn.textContent = '追加'; }
