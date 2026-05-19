@@ -563,7 +563,7 @@ function formatDue(d) {
   const dt = new Date(d + 'T00:00:00');
   const today = new Date(); today.setHours(0,0,0,0);
   const diff = Math.round((dt - today) / 86400000);
-  if (diff < 0) return {text:`${Math.abs(diff)}日超過`,over:true};
+  if (diff < 0) return {text:`${dt.getMonth()+1}/${dt.getDate()}`,over:true};
   if (diff === 0) return {text:'今日',over:false};
   if (diff === 1) return {text:'明日',over:false};
   return {text:`${dt.getMonth()+1}/${dt.getDate()}`,over:false};
