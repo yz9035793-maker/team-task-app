@@ -256,10 +256,17 @@ const EMAIL_TO_MEMBER = {
 
 function getMemberFromEmail(email) {
   const local = email.split('@')[0].toLowerCase();
+  // 直接メールアドレスで照合
+  const directMap = {
+    'm-koshio': '小塩', 's-takeda': '竹田', 't-nakashima': '中嶋',
+    'd-matsukawa': '松川', 'm-sasaki': '佐々木', 't-nakashita': '中下'
+  };
+  if (directMap[local]) return directMap[local];
+  // キーワードで照合
   for (const [key, name] of Object.entries(EMAIL_TO_MEMBER)) {
     if (local === key || local.endsWith('-' + key) || local.startsWith(key + '-')) return name;
   }
-  return Object.values(MEMBERS)[0];
+  return Object.keys(MEMBERS)[0];
 }
 
 function timeOptions(selected) {
