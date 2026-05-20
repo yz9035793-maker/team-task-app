@@ -32,6 +32,7 @@
     .av-purple{background:#1a1430!important;color:#afa9ec!important}
     .av-amber{background:#2a1a04!important;color:#fac775!important}
     .av-green{background:#102210!important;color:#7ac870!important}
+    .av-pink{background:#2a0a14!important;color:#f07898!important}
   }
   html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:15px;overflow-x:hidden}
 
@@ -99,6 +100,7 @@
   .av-blue{background:#E6F1FB;color:#0C447C}.av-teal{background:#E1F5EE;color:#085041}
   .av-coral{background:#FAECE7;color:#712B13}.av-purple{background:#EEEDFE;color:#3C3489}
   .av-amber{background:#FAEEDA;color:#633806}.av-green{background:#EAF3DE;color:#27500A}
+  .av-pink{background:#FDEAF0;color:#8B1A3A}
   .status-badge{font-size:10px;padding:4px 8px;border-radius:999px;font-weight:500;white-space:nowrap;cursor:pointer;border:none;min-height:28px;display:flex;align-items:center;font-family:inherit;flex-shrink:0}
   .del-btn{display:flex;align-items:center;gap:3px;padding:0 7px;height:28px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text3);cursor:pointer;flex-shrink:0;font-size:11px;font-family:inherit;transition:all 0.15s}
   .del-btn:hover{background:#FCEBEB;color:#A32D2D;border-color:#F09595}
@@ -222,6 +224,7 @@
       <button class="filter-btn" onclick="setMemberFilter('松川',this)">松川</button>
       <button class="filter-btn" onclick="setMemberFilter('佐々木',this)">佐々木</button>
       <button class="filter-btn" onclick="setMemberFilter('中下',this)">中下</button>
+      <button class="filter-btn" onclick="setMemberFilter('川上',this)">川上</button>
     </div>
     <div class="task-list" id="task-list"><div class="loading">読み込み中...</div></div>
     <div id="cal-view" style="display:none">
@@ -261,8 +264,8 @@ const SUPABASE_URL = 'https://pbgxirbbuzvbzpqiuvxu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZ3hpcmJidXp2YnpwcWl1dnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzY4NzQsImV4cCI6MjA5NDY1Mjg3NH0.4MK9lTpyJ6Tc10kOLSCQfeUNuDTxNfhQP0SqI8UoqI8';
 let sb;
 
-const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
-const INITIALS = {'小塩':'小','竹田':'竹','中嶋':'嶋','松川':'松','佐々木':'佐','中下':'下'};
+const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green','川上':'av-pink'};
+const INITIALS = {'小塩':'小','竹田':'竹','中嶋':'嶋','松川':'松','佐々木':'佐','中下':'下','川上':'川'};
 const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},done:{label:'完　了',cls:'s-done'}};
 const NEXT = {todo:'inprogress',inprogress:'done',done:'todo'};
 const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
@@ -278,7 +281,7 @@ let weekStart = (() => { const d = new Date(); d.setHours(0,0,0,0); d.setDate(d.
 
 const EMAIL_TO_MEMBER = {
   'koshio': '小塩', 'takeda': '竹田', 'nakashima': '中嶋',
-  'matsukawa': '松川', 'sasaki': '佐々木', 'nakashita': '中下'
+  'matsukawa': '松川', 'sasaki': '佐々木', 'nakashita': '中下', 'kawakami': '川上'
 };
 
 function getMemberFromEmail(email) {
@@ -286,7 +289,7 @@ function getMemberFromEmail(email) {
   // 直接メールアドレスで照合
   const directMap = {
     'm-koshio': '小塩', 's-takeda': '竹田', 't-nakashima': '中嶋',
-    'd-matsukawa': '松川', 'm-sasaki': '佐々木', 't-nakashita': '中下'
+    'd-matsukawa': '松川', 'm-sasaki': '佐々木', 't-nakashita': '中下', 'y-kawakami': '川上'
   };
   if (directMap[local]) return directMap[local];
   // キーワードで照合
