@@ -35,8 +35,6 @@
     .av-pink{background:#2a0a14!important;color:#f07898!important}
   }
   html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Hiragino Sans','Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);font-size:15px;overflow-x:hidden}
-
-  /* ログイン画面 */
   #login-screen{display:flex;align-items:center;justify-content:center;min-height:100vh;padding:1rem}
   .login-card{background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius);padding:2rem;width:100%;max-width:360px}
   .login-logo{font-size:22px;font-weight:700;letter-spacing:-0.5px;margin-bottom:0.25rem}
@@ -49,20 +47,15 @@
   .login-btn:hover{opacity:0.85}
   .login-btn:disabled{opacity:0.5;cursor:not-allowed}
   .login-error{font-size:12px;color:#A32D2D;background:#FCEBEB;border-radius:var(--radius-sm);padding:8px 12px;margin-top:10px;display:none}
-
-  /* アプリ画面 */
   #app-screen{display:none}
   .container{max-width:680px;margin:0 auto;padding:1rem 0.75rem 4rem}
   .header{display:flex;align-items:center;justify-content:space-between;margin-bottom:0.75rem;gap:6px;flex-wrap:wrap}
   .header h1{font-size:18px;font-weight:600;letter-spacing:-0.3px}
   .header-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
   .user-badge{font-size:11px;color:var(--text2);display:flex;align-items:center;gap:3px}
-  .btn-new{display:flex;align-items:center;gap:4px;font-size:12px;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border2);background:var(--surface);color:var(--text);cursor:pointer;font-family:inherit;min-height:40px;transition:background 0.15s}
-  .btn-new:hover{background:var(--surface2)}
   .btn-logout{display:flex;align-items:center;gap:3px;font-size:11px;padding:5px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;min-height:36px;transition:all 0.15s}
   .btn-logout:hover{background:var(--surface2);color:var(--text)}
   .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1.25rem}
-  @media(min-width:480px){.stats{grid-template-columns:repeat(3,1fr)}}
   .stat{background:var(--surface2);border-radius:var(--radius-sm);padding:10px 12px}
   .stat-label{font-size:11px;color:var(--text2);margin-bottom:3px}
   .stat-num{font-size:22px;font-weight:600}
@@ -75,7 +68,6 @@
   .task-card:hover{border-color:var(--border2)}
   .task-card.today-card{border-color:#378ADD;border-width:1.5px}
   .task-memo{font-size:12px;color:var(--text2);margin-top:6px;padding-top:6px;border-top:0.5px solid var(--border);line-height:1.5;white-space:pre-wrap}
-  /* 週表示 */
   .week-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;margin-bottom:1rem}
   .week-col{min-height:120px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:6px 4px;overflow:hidden}
   .week-col.today-col{border-color:#378ADD;border-width:1.5px}
@@ -90,8 +82,6 @@
   .week-nav button{display:flex;align-items:center;gap:4px;padding:0 10px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s}
   .week-nav button:hover{background:var(--surface2);color:var(--text)}
   .task-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:10px}
-  .priority-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
-  .p-high{background:#E24B4A}.p-med{background:#EF9F27}.p-low{background:#639922}
   .task-title{font-size:14px;font-weight:500;flex:1;line-height:1.45}
   .task-bottom{display:flex;align-items:center;justify-content:space-between;gap:6px;flex-wrap:nowrap}
   .task-meta{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text2);flex:1;min-width:0;flex-wrap:wrap}
@@ -130,13 +120,9 @@
   .btn-submit{background:var(--text);color:var(--bg);border-color:var(--text)}
   .btn-submit:hover{opacity:0.85}
   .btn-submit:disabled{opacity:0.5;cursor:not-allowed}
-
-  /* 表示切替 */
   .view-toggle{display:flex;gap:4px;background:var(--surface2);border-radius:var(--radius-sm);padding:3px}
   .view-btn{display:flex;align-items:center;gap:4px;font-size:12px;padding:5px 10px;border-radius:6px;border:none;background:transparent;color:var(--text2);cursor:pointer;font-family:inherit;transition:all 0.15s}
   .view-btn.active{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,0.08)}
-
-  /* カレンダー */
   .cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
   .cal-nav{display:flex;align-items:center;gap:8px}
   .cal-nav button{display:flex;align-items:center;gap:4px;padding:0 10px;height:32px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface);color:var(--text2);cursor:pointer;font-size:12px;font-family:inherit;transition:all 0.15s}
@@ -164,7 +150,6 @@
 </head>
 <body>
 
-<!-- ログイン画面 -->
 <div id="login-screen">
   <div class="login-card">
     <div class="login-logo">営業予定表</div>
@@ -184,7 +169,6 @@
   </div>
 </div>
 
-<!-- アプリ画面 -->
 <div id="app-screen">
   <div class="container">
     <div class="header">
@@ -201,7 +185,7 @@
         <button class="view-btn" id="btn-cal" onclick="setView('calendar')"><i class="ti ti-calendar" aria-hidden="true"></i> 月</button>
       </div>
     </div>
-    <div id="notif-banner" style="display:none;background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1rem;display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
+    <div id="notif-banner" style="display:none;background:#E6F1FB;border:0.5px solid #85B7EB;border-radius:var(--radius-sm);padding:10px 14px;margin-bottom:1rem;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap">
       <span style="font-size:13px;color:#0C447C"><i class="ti ti-bell"></i> 期日前日にリマインド通知を受け取りますか？</span>
       <div style="display:flex;gap:6px">
         <button onclick="requestNotifPermission()" style="font-size:12px;padding:5px 12px;border-radius:var(--radius-sm);border:none;background:#378ADD;color:#fff;cursor:pointer;font-family:inherit">許可する</button>
@@ -286,13 +270,11 @@ const EMAIL_TO_MEMBER = {
 
 function getMemberFromEmail(email) {
   const local = email.split('@')[0].toLowerCase();
-  // 直接メールアドレスで照合
   const directMap = {
     'm-koshio': '小塩', 's-takeda': '竹田', 't-nakashima': '中嶋',
     'd-matsukawa': '松川', 'm-sasaki': '佐々木', 't-nakashita': '中下', 'y-kawakami': '川上'
   };
   if (directMap[local]) return directMap[local];
-  // キーワードで照合
   for (const [key, name] of Object.entries(EMAIL_TO_MEMBER)) {
     if (local === key || local.endsWith('-' + key) || local.startsWith(key + '-')) return name;
   }
@@ -315,7 +297,6 @@ function handleLoginSubmit(e) {
   doLogin();
 }
 
-/* ─── プッシュ通知 ─── */
 const VAPID_PUBLIC = 'BIEq7AFKTGoqecCwoEF1nvmfMopaq2za_PbYsye-LROfCLDMO-mF83AcsrI1PZkRi3ah46LeYQJembcie-gejUE';
 
 function urlBase64ToUint8Array(base64String) {
@@ -331,10 +312,7 @@ async function requestNotifPermission() {
     return;
   }
   const permission = await Notification.requestPermission();
-  if (permission !== 'granted') {
-    alert('通知が許可されませんでした');
-    return;
-  }
+  if (permission !== 'granted') { alert('通知が許可されませんでした'); return; }
   try {
     const reg = await navigator.serviceWorker.ready;
     const sub = await reg.pushManager.subscribe({
@@ -366,7 +344,6 @@ async function checkNotifStatus() {
   }
 }
 
-/* ─── 認証 ─── */
 async function doLogin() {
   if (!sb) { sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY); }
   const email = document.getElementById('login-email').value.trim();
@@ -387,9 +364,7 @@ async function doLogin() {
 
 async function doLogout() {
   await sb.auth.signOut();
-  filter = 'all';
-  memberFilter = 'all';
-  tasks = [];
+  filter = 'all'; memberFilter = 'all'; tasks = [];
   document.getElementById('app-screen').style.display = 'none';
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('login-password').value = '';
@@ -397,11 +372,8 @@ async function doLogout() {
 
 function showApp(user) {
   currentMember = getMemberFromEmail(user.email);
-  filter = 'all';
-  memberFilter = currentMember;
-  viewMode = 'calendar';
-  calYear = new Date().getFullYear();
-  calMonth = new Date().getMonth();
+  filter = 'all'; memberFilter = currentMember; viewMode = 'calendar';
+  calYear = new Date().getFullYear(); calMonth = new Date().getMonth();
   document.getElementById('login-screen').style.display = 'none';
   document.getElementById('app-screen').style.display = 'block';
   document.getElementById('task-list').style.display = 'none';
@@ -419,11 +391,19 @@ function showApp(user) {
   checkNotifStatus();
 }
 
-/* ─── タスク操作 ─── */
 async function loadTasks() {
-  const { data, error } = await sb.from('tasks').select('*').order('due', { ascending: true, nullsFirst: false }).order('time', { ascending: true, nullsFirst: false });
+  const { data, error } = await sb.from('tasks').select('*');
   if (error) { console.error(error); return; }
   tasks = data || [];
+  // 日付→時間の早い順にJSでソート
+  tasks.sort((a, b) => {
+    const da = a.due || '9999-99-99';
+    const db = b.due || '9999-99-99';
+    if (da !== db) return da.localeCompare(db);
+    const ta = a.time || '99:99';
+    const tb = b.time || '99:99';
+    return ta.localeCompare(tb);
+  });
   if (viewMode === 'calendar') renderCalendar();
   else if (viewMode === 'week') renderWeek();
   else render();
@@ -450,7 +430,6 @@ async function addTaskToDb(title, member, status, due, time, memo) {
   return false;
 }
 
-/* ─── 表示 ─── */
 function setView(v) {
   viewMode = v;
   document.getElementById('btn-list').classList.toggle('active', v === 'list');
@@ -506,7 +485,6 @@ function updateCalSelects() {
   const ySel = document.getElementById('cal-year-sel');
   const mSel = document.getElementById('cal-month-sel');
   if (!ySel || !mSel) return;
-  // 年セレクト（現在年-2〜現在年+3）
   const curYear = new Date().getFullYear();
   if (ySel.options.length === 0) {
     for (let y = curYear - 2; y <= curYear + 3; y++) {
@@ -559,6 +537,8 @@ function renderCalendar() {
   document.getElementById('cal-grid').innerHTML = html;
 }
 
+function handleOverlay(e) { if (e.target.id === 'overlay') closeModal(); }
+function closeModal() { document.getElementById('modal-area').innerHTML = ''; }
 
 function openModalWithDate(dateStr) {
   document.getElementById('modal-area').innerHTML = `
@@ -605,6 +585,7 @@ function openViewModal(id) {
             <span>期日：</span><span style="color:var(--text)">${due}</span>
             ${t.time ? `<i class="ti ti-clock" style="font-size:14px;margin-left:8px"></i><span style="color:var(--text)">${t.time}</span>` : ''}
           </div>
+          ${t.memo ? `<div style="font-size:13px;color:var(--text2);border-top:0.5px solid var(--border);padding-top:8px">${escHtml(t.memo)}</div>` : ''}
         </div>
         <div class="modal-btns">
           <button class="btn-cancel" onclick="closeModal()">閉じる</button>
@@ -625,6 +606,7 @@ function setMemberFilter(m, btn) {
   document.querySelectorAll('#member-filters .filter-btn').forEach(b => b.classList.remove('active'));
   btn.classList.add('active');
   if (viewMode === 'calendar') renderCalendar();
+  else if (viewMode === 'week') renderWeek();
   else render();
 }
 
@@ -645,13 +627,10 @@ function render() {
   const today = new Date(); today.setHours(0,0,0,0);
   let visible;
   if (filter === 'done-past') {
-    // 完了(期日後)：完了かつ期日が本日以前
     visible = tasks.filter(t => t.status === 'done' && t.due && new Date(t.due + 'T00:00:00') <= today);
   } else if (filter === 'done') {
-    // 完了(期日前)：完了かつ期日が本日より後
     visible = tasks.filter(t => t.status === 'done' && t.due && new Date(t.due + 'T00:00:00') > today);
   } else if (filter === 'all') {
-    // すべて：完了かつ期日以前は除外
     visible = tasks.filter(t => !(t.status === 'done' && (!t.due || new Date(t.due + 'T00:00:00') <= today)));
   } else {
     visible = tasks.filter(t => t.status === filter);
@@ -659,7 +638,6 @@ function render() {
   if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
   const counts = {todo:0,inprogress:0,done:0};
   tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
-  document.getElementById('btn-new') && (document.getElementById('btn-new').style.display = 'flex');
   document.getElementById('add-bottom-btn').style.display = 'flex';
   document.getElementById('stats').innerHTML = `
     <div class="stat"><div class="stat-label">未着手</div><div class="stat-num">${counts.todo}</div></div>
@@ -718,7 +696,6 @@ function getDueValue() {
   return `${y}-${m}-${d}`;
 }
 
-/* ─── モーダル ─── */
 function openModal() {
   const today = new Date();
   const due = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
@@ -790,9 +767,6 @@ async function cycleStatusAndRefresh(id, dateStr) {
   const { error } = await sb.from('tasks').update({ status: next }).eq('id', id);
   if (!error) { t.status = next; closeModal(); openDayModal(dateStr); renderCalendar(); }
 }
-
-
-function closeModal() { document.getElementById('modal-area').innerHTML = ''; }
 
 function openEditModal(id) {
   const t = tasks.find(t => t.id === id);
