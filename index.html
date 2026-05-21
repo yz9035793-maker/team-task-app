@@ -218,13 +218,13 @@
     </div>
     <div class="filters" id="member-filters">
       <button class="filter-btn active" onclick="setMemberFilter('all',this)">全員</button>
+      <button class="filter-btn" onclick="setMemberFilter('川上',this)">川上</button>
       <button class="filter-btn" onclick="setMemberFilter('小塩',this)">小塩</button>
       <button class="filter-btn" onclick="setMemberFilter('竹田',this)">竹田</button>
       <button class="filter-btn" onclick="setMemberFilter('中嶋',this)">中嶋</button>
       <button class="filter-btn" onclick="setMemberFilter('松川',this)">松川</button>
       <button class="filter-btn" onclick="setMemberFilter('佐々木',this)">佐々木</button>
       <button class="filter-btn" onclick="setMemberFilter('中下',this)">中下</button>
-      <button class="filter-btn" onclick="setMemberFilter('川上',this)">川上</button>
     </div>
     <div class="task-list" id="task-list"><div class="loading">読み込み中...</div></div>
     <div id="cal-view" style="display:none">
@@ -264,8 +264,8 @@ const SUPABASE_URL = 'https://pbgxirbbuzvbzpqiuvxu.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBiZ3hpcmJidXp2YnpwcWl1dnh1Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkwNzY4NzQsImV4cCI6MjA5NDY1Mjg3NH0.4MK9lTpyJ6Tc10kOLSCQfeUNuDTxNfhQP0SqI8UoqI8';
 let sb;
 
-const MEMBERS = {'小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green','川上':'av-pink'};
-const INITIALS = {'小塩':'小','竹田':'竹','中嶋':'嶋','松川':'松','佐々木':'佐','中下':'下','川上':'川'};
+const MEMBERS = {'川上':'av-pink','小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
+const INITIALS = {'川上':'川','小塩':'小','竹田':'竹','中嶋':'嶋','松川':'松','佐々木':'佐','中下':'下'};
 const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},done:{label:'完　了',cls:'s-done'}};
 const NEXT = {todo:'inprogress',inprogress:'done',done:'todo'};
 const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
@@ -421,7 +421,7 @@ function showApp(user) {
 
 /* ─── タスク操作 ─── */
 async function loadTasks() {
-  const { data, error } = await sb.from('tasks').select('*').order('due', { ascending: true, nullsFirst: false });
+  const { data, error } = await sb.from('tasks').select('*').order('due', { ascending: true, nullsFirst: false }).order('time', { ascending: true, nullsFirst: false });
   if (error) { console.error(error); return; }
   tasks = data || [];
   if (viewMode === 'calendar') renderCalendar();
