@@ -23,9 +23,6 @@
   }
   @media (prefers-color-scheme: dark) {
     :root { --bg:#18181a; --surface:#232326; --surface2:#2c2c30; --border:rgba(255,255,255,0.09); --border2:rgba(255,255,255,0.16); --text:#f0f0ec; --text2:#9e9e98; --text3:#666662; }
-    .s-todo{background:#2a2a26!important;color:#b0b0a8!important}
-    .s-inprogress{background:#0e2236!important;color:#7ab8f0!important}
-    .s-done{background:#102210!important;color:#7ac870!important}
     .av-blue{background:#0e2236!important;color:#7ab8f0!important}
     .av-teal{background:#0a2018!important;color:#5dcaa5!important}
     .av-coral{background:#2a1008!important;color:#f0997b!important}
@@ -192,14 +189,6 @@
         <button onclick="document.getElementById('notif-banner').style.display='none'" style="font-size:12px;padding:5px 12px;border-radius:var(--radius-sm);border:1px solid #85B7EB;background:transparent;color:#0C447C;cursor:pointer;font-family:inherit">後で</button>
       </div>
     </div>
-    <div class="stats" id="stats"></div>
-    <div class="filters" id="status-filters">
-      <button class="filter-btn active" onclick="setFilter('all',this)">すべて</button>
-      <button class="filter-btn" onclick="setFilter('todo',this)">未着手</button>
-      <button class="filter-btn" onclick="setFilter('inprogress',this)">進行中</button>
-      <button class="filter-btn" onclick="setFilter('done',this)">完了(期日前)</button>
-      <button class="filter-btn" onclick="setFilter('done-past',this)">完了(期日後)</button>
-    </div>
     <div class="filters" id="member-filters">
       <button class="filter-btn active" onclick="setMemberFilter('all',this)">全員</button>
       <button class="filter-btn" onclick="setMemberFilter('川上',this)">川上</button>
@@ -250,10 +239,6 @@ let sb;
 
 const MEMBERS = {'川上':'av-pink','小塩':'av-blue','竹田':'av-teal','中嶋':'av-coral','松川':'av-purple','佐々木':'av-amber','中下':'av-green'};
 const INITIALS = {'川上':'川','小塩':'小','竹田':'竹','中嶋':'嶋','松川':'松','佐々木':'佐','中下':'下'};
-const STATUS = {todo:{label:'未着手',cls:'s-todo'},inprogress:{label:'進行中',cls:'s-inprogress'},done:{label:'完　了',cls:'s-done'}};
-const NEXT = {todo:'inprogress',inprogress:'done',done:'todo'};
-const PRIORITY = {high:'p-high',med:'p-med',low:'p-low'};
-
 let tasks = [];
 let filter = 'all';
 let memberFilter = 'all';
@@ -379,13 +364,11 @@ function showApp(user) {
   document.getElementById('task-list').style.display = 'none';
   document.getElementById('cal-view').style.display = 'block';
   document.getElementById('week-view').style.display = 'none';
-  document.getElementById('status-filters').style.display = 'none';
   document.getElementById('user-name').textContent = currentMember;
   document.getElementById('btn-list').classList.remove('active');
   document.getElementById('btn-week').classList.remove('active');
   document.getElementById('btn-cal').classList.add('active');
-  document.querySelectorAll('#status-filters .filter-btn, #member-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  document.querySelector('#status-filters .filter-btn:first-child').classList.add('active');
+  document.querySelectorAll('#member-filters .filter-btn').forEach(b => b.classList.remove('active'));
   document.querySelectorAll('#member-filters .filter-btn').forEach(b => { if (b.textContent.trim() === currentMember) b.classList.add('active'); });
   loadTasks();
   checkNotifStatus();
@@ -409,14 +392,6 @@ async function loadTasks() {
   else render();
 }
 
-async function cycleStatus(id) {
-  const t = tasks.find(t => t.id === id);
-  if (!t) return;
-  const next = NEXT[t.status];
-  const { error } = await sb.from('tasks').update({ status: next }).eq('id', id);
-  if (!error) { t.status = next; render(); }
-}
-
 async function deleteTask(id) {
   if (!confirm('このタスクを削除しますか？')) return;
   const { error } = await sb.from('tasks').delete().eq('id', id);
@@ -424,8 +399,8 @@ async function deleteTask(id) {
   tasks = tasks.filter(t => t.id !== id); render();
 }
 
-async function addTaskToDb(title, member, status, due, time, memo) {
-  const { error } = await sb.from('tasks').insert([{ title, member, status, due: due || null, time: time || null, memo: memo || null }]);
+async function addTaskToDb(title, member, due, time, memo) {
+  const { error } = await sb.from('tasks').insert([{ title, member, due: due || null, time: time || null, memo: memo || null }]);
   if (!error) { await loadTasks(); return true; }
   return false;
 }
@@ -438,7 +413,6 @@ function setView(v) {
   document.getElementById('task-list').style.display = v === 'list' ? 'flex' : 'none';
   document.getElementById('week-view').style.display = v === 'week' ? 'block' : 'none';
   document.getElementById('cal-view').style.display = v === 'calendar' ? 'block' : 'none';
-  document.getElementById('status-filters').style.display = v === 'list' ? 'flex' : 'none';
   if (v === 'calendar') renderCalendar();
   else if (v === 'week') renderWeek();
   else render();
@@ -465,7 +439,7 @@ function renderWeek() {
     const dayTasks = filtered.filter(t => t.due === dateStr);
     const cls = [isToday?'today-col':'', i===0?'sunday':i===6?'saturday':''].filter(Boolean).join(' ');
     const taskHtml = dayTasks.map(t =>
-      `<div class="week-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="event.stopPropagation();${t.member===currentMember?`openEditModal('${t.id}')`:`openViewModal('${t.id}')`}" title="${escHtml(t.title)}">
+      `<div class="week-task" onclick="event.stopPropagation();${t.member===currentMember?`openEditModal('${t.id}')`:`openViewModal('${t.id}')`}" title="${escHtml(t.title)}" style="background:var(--surface2);color:var(--text2)">
         <span style="font-size:9px;font-weight:600">${INITIALS[t.member]||t.member[0]}</span> ${escHtml(t.title)}
       </div>`
     ).join('');
@@ -525,7 +499,7 @@ function renderCalendar() {
     const dayTasks = filtered.filter(t => t.due === dateStr);
     const cls = [isToday?'today':'', dow===0?'sunday':dow===6?'saturday':''].filter(Boolean).join(' ');
     let taskHtml = dayTasks.slice(0,3).map(t =>
-      `<div class="cal-task ${STATUS[t.status]?.cls||'s-todo'}" onclick="event.stopPropagation();${t.member===currentMember?`openEditModal('${t.id}')`:`openViewModal('${t.id}')`}" title="${escHtml(t.title)}" style="cursor:pointer"><span class="cal-initial">${INITIALS[t.member]||t.member[0]}</span> ${escHtml(t.title)}</div>`
+      `<div class="cal-task" onclick="event.stopPropagation();${t.member===currentMember?`openEditModal('${t.id}')`:`openViewModal('${t.id}')`}" title="${escHtml(t.title)}" style="cursor:pointer;background:var(--surface2);color:var(--text2)"><span class="cal-initial">${INITIALS[t.member]||t.member[0]}</span> ${escHtml(t.title)}</div>`
     ).join('');
     if (dayTasks.length > 3) taskHtml += `<div class="cal-more" onclick="event.stopPropagation();openDayModal('${dateStr}')" style="cursor:pointer">+${dayTasks.length-3}件 すべて見る</div>`;
     html += `<div class="cal-cell ${cls}" onclick="openModalWithDate('${dateStr}')"><div class="cal-day">${d}</div>${taskHtml}</div>`;
@@ -547,9 +521,6 @@ function openModalWithDate(dateStr) {
         <h2>新規タスク</h2>
         <div class="field"><label>タスク名</label><input type="text" id="f-title" placeholder="タスクを入力" autofocus oninput="document.getElementById('f-title-error').style.display='none'"><div id="f-title-error" style="display:none;color:#A32D2D;font-size:12px;margin-top:4px;">* 必須項目です</div></div>
         <div class="field"><label>担当者</label><select id="f-member" disabled style="opacity:0.7"><option selected>${currentMember}</option></select></div>
-        <div class="field"><label>ステータス</label><select id="f-status">
-          <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="done">完了</option>
-        </select></div>
         <div class="field"><label>期日</label>${dateSelects(dateStr)}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions('00:00')}</select></div>
         <div class="field"><label>メモ</label><textarea id="f-memo" placeholder="備考・メモを入力（任意）" style="width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:72px;outline:none;resize:vertical"></textarea></div>
@@ -564,7 +535,6 @@ function openModalWithDate(dateStr) {
 function openViewModal(id) {
   const t = tasks.find(t => t.id === id);
   if (!t) return;
-  const s = STATUS[t.status] || STATUS.todo;
   const av = MEMBERS[t.member] || 'av-blue';
   const due = t.due ? `${parseInt(t.due.split('-')[1])}/${parseInt(t.due.split('-')[2])}` : '未設定';
   document.getElementById('modal-area').innerHTML = `
@@ -576,9 +546,6 @@ function openViewModal(id) {
             <div class="avatar ${av}">${INITIALS[t.member]||t.member[0]}</div>
             <span style="color:var(--text2)">担当者</span>
             <span style="font-weight:500">${escHtml(t.member)}</span>
-          </div>
-          <div style="display:flex;align-items:center;gap:8px;font-size:13px">
-            <span class="status-badge ${s.cls}" style="cursor:default">${s.label}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text2)">
             <i class="ti ti-calendar-event" style="font-size:14px"></i>
@@ -592,13 +559,6 @@ function openViewModal(id) {
         </div>
       </div>
     </div>`;
-}
-
-function setFilter(f, btn) {
-  filter = f;
-  document.querySelectorAll('#status-filters .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  render();
 }
 
 function setMemberFilter(m, btn) {
@@ -625,27 +585,10 @@ function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;'
 
 function render() {
   const today = new Date(); today.setHours(0,0,0,0);
-  let visible;
-  if (filter === 'done-past') {
-    visible = tasks.filter(t => t.status === 'done' && t.due && new Date(t.due + 'T00:00:00') <= today);
-  } else if (filter === 'done') {
-    visible = tasks.filter(t => t.status === 'done' && t.due && new Date(t.due + 'T00:00:00') > today);
-  } else if (filter === 'all') {
-    visible = tasks.filter(t => !(t.status === 'done' && (!t.due || new Date(t.due + 'T00:00:00') <= today)));
-  } else {
-    visible = tasks.filter(t => t.status === filter);
-  }
+  let visible = tasks.filter(t => !t.due || new Date(t.due + 'T00:00:00') >= today);
   if (memberFilter !== 'all') visible = visible.filter(t => t.member === memberFilter);
-  const counts = {todo:0,inprogress:0,done:0};
-  tasks.forEach(t => { if (counts[t.status] !== undefined) counts[t.status]++; });
   document.getElementById('add-bottom-btn').style.display = 'flex';
-  document.getElementById('stats').innerHTML = `
-    <div class="stat"><div class="stat-label">未着手</div><div class="stat-num">${counts.todo}</div></div>
-    <div class="stat"><div class="stat-label">進行中</div><div class="stat-num">${counts.inprogress}</div></div>
-    <div class="stat"><div class="stat-label">完了</div><div class="stat-num">${counts.done}</div></div>
-  `;
   document.getElementById('task-list').innerHTML = visible.length ? visible.map(t => {
-    const s = STATUS[t.status] || STATUS.todo;
     const av = MEMBERS[t.member] || 'av-blue';
     const due = formatDue(t.due);
     const isOwn = t.member === currentMember;
@@ -662,7 +605,6 @@ function render() {
           ${t.time ? `<span class="due"><i class="ti ti-clock" style="font-size:12px"></i> ${escHtml(t.time)}</span>` : ''}
         </div>
         <div class="task-actions">
-          <span class="status-badge ${s.cls}" style="cursor:${isOwn?'pointer':'default'}" ${isOwn?`onclick="cycleStatus('${t.id}')"`:''}>${s.label}</span>
           <button class="edit-btn" ${isOwn?`onclick="openEditModal('${t.id}')"`:'disabled'} aria-label="編集" style="${isOwn?'':'opacity:0;pointer-events:none'}"><i class="ti ti-edit"></i> 編集</button>
           <button class="del-btn" ${isOwn?`onclick="deleteTask('${t.id}')"`:'disabled'} aria-label="削除" style="${isOwn?'':'opacity:0;pointer-events:none'}"><i class="ti ti-trash"></i> 削除</button>
         </div>
@@ -707,9 +649,6 @@ function openModal() {
         <div class="field"><label>担当者</label><select id="f-member" disabled style="opacity:0.7">
           <option selected>${currentMember}</option>
         </select></div>
-        <div class="field"><label>ステータス</label><select id="f-status">
-          <option value="todo">未着手</option><option value="inprogress">進行中</option><option value="done">完了</option>
-        </select></div>
         <div class="field"><label>期日</label>${dateSelects(due)}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions('00:00')}</select></div>
         <div class="field"><label>メモ</label><textarea id="f-memo" placeholder="備考・メモを入力（任意）" style="width:100%;font-size:14px;padding:10px 12px;border:1px solid var(--border2);border-radius:var(--radius-sm);background:var(--bg);color:var(--text);font-family:inherit;min-height:72px;outline:none;resize:vertical"></textarea></div>
@@ -727,7 +666,6 @@ function openDayModal(dateStr) {
   const [y, m, d] = dateStr.split('-');
   const label = `${parseInt(m)}月${parseInt(d)}日`;
   const taskHtml = dayTasks.map(t => {
-    const s = STATUS[t.status] || STATUS.todo;
     const av = MEMBERS[t.member] || 'av-blue';
     const isOwn = t.member === currentMember;
     return `<div class="task-card" style="margin-bottom:8px">
@@ -739,7 +677,6 @@ function openDayModal(dateStr) {
           ${t.time ? `<span class="due"><i class="ti ti-clock" style="font-size:12px"></i> ${escHtml(t.time)}</span>` : ''}
         </div>
         <div class="task-actions">
-          <span class="status-badge ${s.cls}" style="cursor:${isOwn?'pointer':'default'}" ${isOwn?`onclick="cycleStatusAndRefresh('${t.id}','${dateStr}')"`:''}>${s.label}</span>
           ${isOwn
             ? `<button class="edit-btn" onclick="closeModal();openEditModal('${t.id}')"><i class="ti ti-edit"></i> 編集</button>`
             : `<button class="edit-btn" onclick="closeModal();openViewModal('${t.id}')"><i class="ti ti-eye"></i> 参照</button>`
@@ -760,14 +697,6 @@ function openDayModal(dateStr) {
     </div>`;
 }
 
-async function cycleStatusAndRefresh(id, dateStr) {
-  const t = tasks.find(t => t.id === id);
-  if (!t) return;
-  const next = NEXT[t.status];
-  const { error } = await sb.from('tasks').update({ status: next }).eq('id', id);
-  if (!error) { t.status = next; closeModal(); openDayModal(dateStr); renderCalendar(); }
-}
-
 function openEditModal(id) {
   const t = tasks.find(t => t.id === id);
   if (!t) return;
@@ -779,11 +708,6 @@ function openEditModal(id) {
         <div class="field"><label>タスク名</label><input type="text" id="f-title" value="${escHtml(t.title)}" autofocus oninput="document.getElementById('f-title-error').style.display='none'"><div id="f-title-error" style="display:none;color:#A32D2D;font-size:12px;margin-top:4px;">* 必須項目です</div></div>
         <div class="field"><label>担当者</label><select id="f-member">
           ${members.map(m => `<option ${t.member===m?'selected':''}>${m}</option>`).join('')}
-        </select></div>
-        <div class="field"><label>ステータス</label><select id="f-status">
-          <option value="todo" ${t.status==='todo'?'selected':''}>未着手</option>
-          <option value="inprogress" ${t.status==='inprogress'?'selected':''}>進行中</option>
-          <option value="done" ${t.status==='done'?'selected':''}>完了</option>
         </select></div>
         <div class="field"><label>期日</label>${dateSelects(t.due||'')}</div>
         <div class="field"><label>時間</label><select id="f-time">${timeOptions(t.time||'00:00')}</select></div>
@@ -820,7 +744,6 @@ async function updateTask(id) {
   const updates = {
     title,
     member: document.getElementById('f-member').value,
-    status: document.getElementById('f-status').value,
     due: getDueValue() || null,
     time: document.getElementById('f-time').value || null,
     memo: document.getElementById('f-memo').value || null
@@ -848,7 +771,6 @@ async function submitTask() {
   const ok = await addTaskToDb(
     title,
     currentMember,
-    document.getElementById('f-status').value,
     getDueValue(),
     document.getElementById('f-time').value,
     document.getElementById('f-memo').value
